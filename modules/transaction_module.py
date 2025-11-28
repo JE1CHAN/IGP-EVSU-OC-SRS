@@ -159,7 +159,7 @@ class TransactionModule:
             bg="white",
             fg="#e74c3c"
         )
-        self.stock_label.grid(row=4, column=1, pady=0, padx=10)
+        self.stock_label.grid(row=4, column=1, pady=0, padx=0)
         
         # --- Row 5: Quantity ---
         tk.Label(
