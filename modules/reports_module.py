@@ -8,6 +8,7 @@ from tkinter import ttk, messagebox, filedialog
 from datetime import datetime
 import calendar
 import csv
+from tkcalendar import DateEntry
 
 class ReportsModule:
     """Sales reports generation with print capability"""
@@ -123,8 +124,18 @@ class ReportsModule:
             bg="white"
         ).pack(side=tk.LEFT, padx=(0, 5))
         
-        self.custom_start_date = tk.Entry(custom_frame, font=("Arial", 11), width=12)
+        self.custom_start_date = DateEntry(
+            custom_frame,
+            font=("Arial", 12),
+            width=10,
+            background="maroon",
+            foreground="white",
+            borderwidth=2,
+            date_pattern="yyyy-mm-dd",
+            showweeknumbers=False
+        )
         self.custom_start_date.pack(side=tk.LEFT, padx=5)
+        self.custom_start_date.delete(0, "end")
         
         # End Date
         tk.Label(
@@ -134,8 +145,19 @@ class ReportsModule:
             bg="white"
         ).pack(side=tk.LEFT, padx=(15, 5))
         
-        self.custom_end_date = tk.Entry(custom_frame, font=("Arial", 11), width=12)
+        self.custom_end_date = DateEntry(
+            custom_frame,
+            font=("Arial", 12),
+            width=10,
+            background="maroon",
+            foreground="white",
+            borderwidth=2,
+            date_pattern="yyyy-mm-dd",
+            showweeknumbers=False
+        )
         self.custom_end_date.pack(side=tk.LEFT, padx=5)
+        self.custom_end_date.delete(0, "end")
+        
         
         tk.Label(
             custom_frame,
