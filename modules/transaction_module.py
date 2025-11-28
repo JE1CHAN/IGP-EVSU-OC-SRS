@@ -242,7 +242,8 @@ class TransactionModule:
             background="maroon",
             foreground="white",
             borderwidth=2,
-            date_pattern="yyyy-mm-dd"  # Ensures same format used in validation
+            date_pattern="yyyy-mm-dd",
+            showweeknumber=False
         )
         self.date_entry.grid(row=9, column=1, pady=10, padx=10)
         
