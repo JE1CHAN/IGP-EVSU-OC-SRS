@@ -302,6 +302,10 @@ class TransactionModule:
                 self.price_entry.delete(0, tk.END)
                 self.price_entry.insert(0, f"₱{price:.2f}")
                 self.price_entry.config(state="readonly")
+
+                # Set initial quantity to 1
+                self.quantity_entry.delete(0, tk.END)
+                self.quantity_entry.insert(0, "1")
                 
                 # Calculate amount if quantity is already entered
                 self.calculate_amount()

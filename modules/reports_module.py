@@ -437,18 +437,7 @@ class ReportsModule:
         button_frame = tk.Frame(scrollable_frame, bg="white", pady=20)
         button_frame.pack(fill=tk.X)
         
-        # Print button (Yellow)
-        tk.Button(
-            button_frame,
-            text="🖨️ Print Report",
-            font=("Arial", 12, "bold"),
-            bg="#FFC107",  # Yellow
-            fg="black",    # Black
-            padx=30,
-            pady=12,
-            cursor="hand2",
-            command=lambda: self.print_report(report_window)
-        ).pack(side=tk.LEFT, padx=20)
+        # REMOVED PRINT BUTTON AS REQUESTED
         
         # Export CSV button (Green)
         tk.Button(
@@ -479,24 +468,7 @@ class ReportsModule:
         # Pack canvas and scrollbar
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-    
-    def print_report(self, window):
-        """Print the report window"""
-        try:
-            # This will attempt to print the window
-            # Note: This uses the system print dialog
-            window.update()
-            messagebox.showinfo(
-                "Print",
-                "Print dialog is not available in this version.\n\n"
-                "To print:\n"
-                "1. Take a screenshot of this report\n"
-                "2. Or use your system's screen capture tool\n"
-                "3. Print the captured image\n\n"
-                "Alternative: Export data to Excel using a spreadsheet library."
-            )
-        except Exception as e:
-            messagebox.showerror("Print Error", f"Failed to print: {str(e)}")
+        
             
     def export_to_csv(self, report_data, title):
         """Export report data to CSV file"""
