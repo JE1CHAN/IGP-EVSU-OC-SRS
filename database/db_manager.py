@@ -307,6 +307,67 @@ class DatabaseManager:
         except Exception as e:
             print(f"Error adding transaction: {e}")
             return False
+
+    def update_transaction(self, transaction_id, buyer_name, product_name, size, quantity, amount, or_number, date):
+        """
+        Update a transaction and adjust inventory if product/qty changed
+        Returns: (success: bool, message: str)
+        """
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            # 1. Get old transaction details
+            cursor.execute("SELECT product_name, size, quantity FROM transactions WHERE transaction_id = ?", (transaction_id,))
+            old_data = cursor.fetchone()
+            
+            if not old_data:
+                conn.close()
+                return False, "Transaction not found"
+            
+            old_prod, old_size, old_qty = old_data
+            
+            # 2. Handle Inventory Updates
+            # Revert old stock (Add back)
+            cursor.execute("SELECT stock FROM inventory WHERE product_name = ? AND size = ?", (old_prod, old_size))
+            old_stock_row = cursor.fetchone()
+            if old_stock_row:
+                 cursor.execute("UPDATE inventory SET stock = ? WHERE product_name = ? AND size = ?", (old_stock_row[0] + old_qty, old_prod, old_size))
+            
+            # Deduct new stock
+            cursor.execute("SELECT stock FROM inventory WHERE product_name = ? AND size = ?", (product_name, size))
+            new_stock_row = cursor.fetchone()
+            if not new_stock_row:
+                 conn.rollback() # Undo revert
+                 conn.close()
+                 return False, f"Product {product_name} ({size}) not found in inventory"
+            
+            current_stock = new_stock_row[0]
+            # Note: We use the stock value *after* revert of old qty if it's the same product
+            if product_name == old_prod and size == old_size:
+                current_stock = old_stock_row[0] + old_qty
+
+            if current_stock < quantity:
+                 conn.rollback() # Undo revert
+                 conn.close()
+                 return False, f"Insufficient stock for {product_name} ({size}). Available: {current_stock}"
+            
+            cursor.execute("UPDATE inventory SET stock = ? WHERE product_name = ? AND size = ?", (current_stock - quantity, product_name, size))
+            
+            # 3. Update Transaction Record
+            cursor.execute("""
+                UPDATE transactions 
+                SET buyer_name=?, product_name=?, size=?, quantity=?, amount=?, or_number=?, date=?
+                WHERE transaction_id=?
+            """, (buyer_name, product_name, size, quantity, amount, or_number, date, transaction_id))
+            
+            conn.commit()
+            conn.close()
+            return True, "Transaction updated successfully"
+            
+        except Exception as e:
+            print(f"Error updating transaction: {e}")
+            return False, str(e)
     
     def get_all_transactions(self):
         """Get all transactions"""

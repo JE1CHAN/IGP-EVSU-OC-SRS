@@ -6,6 +6,7 @@ View and search all transaction history with filters
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
+from tkcalendar import DateEntry
 
 
 class HistoryModule:
@@ -135,6 +136,20 @@ class HistoryModule:
             command=self.clear_filters
         )
         clear_btn.pack(side=tk.LEFT, padx=5)
+
+        # Edit Button (Green) - NEW
+        edit_btn = tk.Button(
+            row2,
+            text="✏️ Edit Transaction",
+            font=("Arial", 10, "bold"),
+            bg="#27ae60",  # Green
+            fg="white",    # White
+            padx=20,
+            pady=5,
+            cursor="hand2",
+            command=self.edit_transaction
+        )
+        edit_btn.pack(side=tk.LEFT, padx=5)
         
         # Stats frame (Light Yellow for visibility)
         stats_frame = tk.Frame(self.main_frame, bg="#fdf2ce", relief=tk.RIDGE, bd=2)
@@ -297,3 +312,151 @@ class HistoryModule:
         self.start_date.delete(0, tk.END)
         self.end_date.delete(0, tk.END)
         self.load_all_transactions()
+    
+    def edit_transaction(self):
+        """Edit the selected transaction"""
+        selected_item = self.tree.selection()
+        if not selected_item:
+            messagebox.showwarning("Warning", "Please select a transaction to edit.")
+            return
+
+        # Get values from treeview
+        item_values = self.tree.item(selected_item)['values']
+        # Tree values: (ID, Buyer, Product, Size, Qty, Amount, OR#, Date)
+        trans_id = item_values[0]
+        curr_buyer = item_values[1]
+        curr_prod = item_values[2]
+        curr_size = item_values[3]
+        curr_qty = item_values[4]
+        curr_amount_str = item_values[5]
+        curr_or = item_values[6]
+        curr_date = item_values[7]
+        
+        # Parse amount string back to float (remove ₱ and commas)
+        curr_amount = float(str(curr_amount_str).replace('₱', '').replace(',', ''))
+
+        # Create edit dialog
+        edit_window = tk.Toplevel(self.parent)
+        edit_window.title(f"Edit Transaction #{trans_id}")
+        edit_window.geometry("450x550")
+        edit_window.configure(bg="white")
+        edit_window.transient(self.parent)
+        edit_window.grab_set()
+
+        form_frame = tk.Frame(edit_window, bg="white", padx=20, pady=20)
+        form_frame.pack(fill=tk.BOTH, expand=True)
+
+        tk.Label(form_frame, text="Edit Transaction Details", font=("Arial", 14, "bold"), bg="white", fg="#27ae60").pack(pady=(0, 20))
+
+        # Buyer Name
+        tk.Label(form_frame, text="Buyer Name:", font=("Arial", 11), bg="white").pack(anchor="w")
+        buyer_entry = tk.Entry(form_frame, font=("Arial", 11))
+        buyer_entry.pack(fill=tk.X, pady=(0, 10))
+        buyer_entry.insert(0, curr_buyer)
+
+        # Product & Size (We allow changing, but must update stock calculations)
+        # For simplicity in this edit, we'll use Comboboxes like in TransactionModule
+        
+        tk.Label(form_frame, text="Product:", font=("Arial", 11), bg="white").pack(anchor="w")
+        product_combo = ttk.Combobox(form_frame, font=("Arial", 11), state="readonly")
+        product_combo.pack(fill=tk.X, pady=(0, 10))
+        product_combo['values'] = self.db.get_unique_products()
+        product_combo.set(curr_prod)
+
+        tk.Label(form_frame, text="Size:", font=("Arial", 11), bg="white").pack(anchor="w")
+        size_combo = ttk.Combobox(form_frame, font=("Arial", 11), state="readonly")
+        size_combo.pack(fill=tk.X, pady=(0, 10))
+        # Initial population of size based on current product
+        size_combo['values'] = self.db.get_sizes_for_product(curr_prod)
+        size_combo.set(curr_size)
+
+        def on_prod_change(event):
+            p = product_combo.get()
+            sizes = self.db.get_sizes_for_product(p)
+            size_combo['values'] = sizes
+            size_combo.set('')
+        product_combo.bind("<<ComboboxSelected>>", on_prod_change)
+
+        # Quantity
+        tk.Label(form_frame, text="Quantity:", font=("Arial", 11), bg="white").pack(anchor="w")
+        qty_entry = tk.Entry(form_frame, font=("Arial", 11))
+        qty_entry.pack(fill=tk.X, pady=(0, 10))
+        qty_entry.insert(0, str(curr_qty))
+
+        # Amount (Auto-calc logic is nice, but allow manual override or simple calc)
+        # We'll just let them edit it, or simpler: recalc based on DB price if prod/qty changes?
+        # For flexibility (e.g. discount given), we allow editing, but maybe show a "Recalculate" hint?
+        # Let's keep it simple: Just an entry.
+        tk.Label(form_frame, text="Total Amount:", font=("Arial", 11), bg="white").pack(anchor="w")
+        amount_entry = tk.Entry(form_frame, font=("Arial", 11))
+        amount_entry.pack(fill=tk.X, pady=(0, 10))
+        amount_entry.insert(0, str(curr_amount))
+
+        # Helper to recalc price
+        def recalc_price():
+            p = product_combo.get()
+            s = size_combo.get()
+            try:
+                q = int(qty_entry.get())
+                prod_data = self.db.get_product_by_name_size(p, s)
+                if prod_data:
+                    # prod_data: (item_id, product_name, size, stock, price)
+                    price = prod_data[4]
+                    new_total = price * q
+                    amount_entry.delete(0, tk.END)
+                    amount_entry.insert(0, f"{new_total:.2f}")
+            except:
+                pass
+
+        recalc_btn = tk.Button(form_frame, text="🔄 Recalculate Amount", command=recalc_price, bg="#eee", font=("Arial", 9))
+        recalc_btn.pack(anchor="e", pady=(0, 10))
+
+        # OR Number
+        tk.Label(form_frame, text="OR Number:", font=("Arial", 11), bg="white").pack(anchor="w")
+        or_entry = tk.Entry(form_frame, font=("Arial", 11))
+        or_entry.pack(fill=tk.X, pady=(0, 10))
+        or_entry.insert(0, curr_or)
+
+        # Date
+        tk.Label(form_frame, text="Date:", font=("Arial", 11), bg="white").pack(anchor="w")
+        date_entry = DateEntry(form_frame, font=("Arial", 11), date_pattern="yyyy-mm-dd")
+        date_entry.pack(fill=tk.X, pady=(0, 20))
+        date_entry.set_date(curr_date) # Requires correct format
+
+        def save_changes():
+            # Validate
+            new_buyer = buyer_entry.get().strip()
+            new_prod = product_combo.get()
+            new_size = size_combo.get()
+            new_or = or_entry.get().strip()
+            new_date = date_entry.get()
+            
+            if not new_buyer or not new_prod or not new_size or not new_or:
+                messagebox.showerror("Error", "All fields are required.")
+                return
+
+            try:
+                new_qty = int(qty_entry.get())
+                new_amount = float(amount_entry.get().replace(',', ''))
+                if new_qty <= 0: raise ValueError
+            except:
+                messagebox.showerror("Error", "Invalid Quantity or Amount.")
+                return
+
+            # Call DB Update
+            success, msg = self.db.update_transaction(
+                trans_id, new_buyer, new_prod, new_size, new_qty, new_amount, new_or, new_date
+            )
+
+            if success:
+                messagebox.showinfo("Success", msg)
+                edit_window.destroy()
+                self.load_all_transactions() # Refresh list
+            else:
+                messagebox.showerror("Error", msg)
+
+        # Save Button
+        tk.Button(
+            form_frame, text="💾 Save Changes", font=("Arial", 12, "bold"),
+            bg="#27ae60", fg="white", pady=10, command=save_changes
+        ).pack(fill=tk.X)
