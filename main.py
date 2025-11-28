@@ -196,7 +196,7 @@ class MainApplication(tk.Tk):
         
         # Configure main window
         self.title("EVSU-OC IGP Sales Record System")
-        self.geometry("1200x700")
+        self.geometry("1200x800")
         self.configure(bg="#f0f0f0")
         
         # Center window on screen
