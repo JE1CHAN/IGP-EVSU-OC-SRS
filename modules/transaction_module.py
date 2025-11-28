@@ -243,7 +243,7 @@ class TransactionModule:
             foreground="white",
             borderwidth=2,
             date_pattern="yyyy-mm-dd",
-            showweeknumber=False
+            showweeknumbers=False
         )
         self.date_entry.grid(row=9, column=1, pady=10, padx=10)
         
