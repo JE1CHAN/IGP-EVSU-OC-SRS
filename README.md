@@ -169,24 +169,18 @@ EVSU-OC IGP SRS/
 1. Open Command Prompt
 2. Navigate to project directory:
    ```bash
-   cd "C:\Users\Laire Neil Villena\Desktop\EVSU-OC IGP SRS"
+   cd "C:\Users\Christian Jay\Documents\Github\IGP-EVSU-OC-SRS"
    ```
 3. Run the application:
    ```bash
    python main.py
    ```
 
-### Method 2: Double-Click (Windows)
-1. Create a shortcut to `main.py`
-2. Right-click the shortcut → Properties
-3. Change "Target" to: `python "C:\Users\Laire Neil Villena\Desktop\EVSU-OC IGP SRS\main.py"`
-4. Double-click the shortcut to run
-
-### Method 3: Create a Batch File
+### Method 2: Create a Batch File
 Create a file named `run_system.bat` with this content:
 ```batch
 @echo off
-cd /d "C:\Users\Laire Neil Villena\Desktop\EVSU-OC IGP SRS"
+cd /d "C:\Users\Christian Jay\Documents\Github\IGP-EVSU-OC-SRS"
 python main.py
 pause
 ```
@@ -350,7 +344,7 @@ To update the system:
 
 For technical support or issues:
 - Contact: EVSU-OC IT Department
-- Email: [Your Email Here]
+- Email: christianjay.matres@evsu.edu.ph
 - Location: EVSU Ormoc Campus
 
 ---
@@ -375,29 +369,6 @@ For technical support or issues:
 
 ---
 
-## 🎓 Developer Notes
-
-### Code Structure
-- **MVC-inspired architecture**
-- **Modular design** for easy maintenance
-- **Extensive comments** for beginners
-- **Error handling** throughout
-
-### Extending the System
-
-#### Adding New Features
-1. Create new module in `modules/` directory
-2. Import in `main.py`
-3. Add navigation button
-4. Follow existing code patterns
-
-#### Database Modifications
-1. Update schema in `db_manager.py`
-2. Add corresponding CRUD operations
-3. Update UI components accordingly
-
----
-
 ## 📜 License
 
 This system is developed for **Eastern Visayas State University - Ormoc Campus** for internal use in the Income Generating Project.
@@ -412,23 +383,8 @@ Before deploying to production:
 - [ ] Database initialized with sample data
 - [ ] All modules tested
 - [ ] Backup procedure documented
-- [ ] Staff trained on system usage
-- [ ] Emergency contact information available
-
----
-
-## 🎉 Version History
-
-**Version 1.0.0** (Initial Release)
-- Transaction Entry Module
-- Inventory Management Module
-- Sales History Viewer
-- Monthly Reports Generator
-- SQLite Database Integration
-- Complete User Interface
 
 ---
 
 **Developed with ❤️ for EVSU-OC**
 
-*This system replaces manual logbooks and Excel files, providing a modern, efficient solution for tracking IGP sales at Eastern Visayas State University - Ormoc Campus.*
