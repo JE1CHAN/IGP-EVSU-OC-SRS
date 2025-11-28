@@ -23,7 +23,6 @@ from modules.reports_module import ReportsModule
 
 class LoginWindow(tk.Toplevel):
     """Secure Login Window"""
-    
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent

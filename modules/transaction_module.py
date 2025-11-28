@@ -37,7 +37,7 @@ class TransactionModule:
         form_frame = tk.Frame(self.main_frame, bg="white")
         form_frame.pack(pady=10)
         
-        # Buyer Name
+        # --- Row 0: Buyer Name ---
         tk.Label(
             form_frame,
             text="Buyer Name:",
@@ -52,13 +52,80 @@ class TransactionModule:
         )
         self.buyer_name_entry.grid(row=0, column=1, pady=10, padx=10)
         
-        # Product Name
+        # --- Row 1: Program/Course (NEW) ---
+        tk.Label(
+            form_frame,
+            text="Program/Course:",
+            font=("Arial", 12, "bold"),
+            bg="white"
+        ).grid(row=1, column=0, sticky="w", pady=10, padx=10)
+        
+        self.course_combo = ttk.Combobox(
+            form_frame,
+            font=("Arial", 12),
+            width=33,
+            state="readonly"
+        )
+        self.course_combo.grid(row=1, column=1, pady=10, padx=10)
+        
+        # Cleaned list based on your input
+        course_list = [
+            "BSAr (Architecture)",
+            "BSID (Interior Design)",
+            "SAS (Arts and Sciences)",
+            "BS Economics",
+            "AB Filipino",
+            "BAEL (English Language)",
+            "BSMath",
+            "BSES (Environmental Science)",
+            "BSChem",
+            "BSStat",
+            "BHumServ (Human Services)",
+            "BSE (Entrepreneurship)",
+            "BSOA (Office Admin)",
+            "BSA (Accountancy)",
+            "BSM (Marketing)",
+            "SOED (School of Education)",
+            "BSEd",
+            "BCAEd (Culture & Arts)",
+            "BPEd (Physical Ed)",
+            "BEED (Elementary Ed)",
+            "BTVTEd - FSM (Food Service)",
+            "BTVTEd - Civil & Construction",
+            "BTVTEd - Automotive",
+            "BTVTEd - Electrical",
+            "BTVTEd - GFD (Garments)",
+            "BTVTEd - HVAC",
+            "BTLEd - IA (Industrial Arts)",
+            "BTLEd - HE (Home Economics)",
+            "DTS (Diploma Teaching Sec)",
+            "SOE (School of Engineering)",
+            "BSChE (Chemical Eng)",
+            "BSCE (Civil Eng)",
+            "BSEE (Electrical Eng)",
+            "BSECE (Electronics Eng)",
+            "BSGE (Geodetic Eng)",
+            "BSME (Mechanical Eng)",
+            "BSIE (Industrial Eng)",
+            "BSIT (Info Tech)",
+            "SOT (School of Tech)",
+            "BSHM (Hospitality Mgmt)",
+            "BSND (Nutrition & Dietetics)",
+            "BIndTech",
+            "BSMT - Automotive",
+            "BSMT - Metallurgy",
+            "BSMT - Machine Shop",
+            "BSMT - Welding"
+        ]
+        self.course_combo['values'] = sorted(course_list)
+        
+        # --- Row 2: Product ---
         tk.Label(
             form_frame,
             text="Product:",
             font=("Arial", 12, "bold"),
             bg="white"
-        ).grid(row=1, column=0, sticky="w", pady=10, padx=10)
+        ).grid(row=2, column=0, sticky="w", pady=10, padx=10)
         
         self.product_combo = ttk.Combobox(
             form_frame,
@@ -66,16 +133,16 @@ class TransactionModule:
             width=33,
             state="readonly"
         )
-        self.product_combo.grid(row=1, column=1, pady=10, padx=10)
+        self.product_combo.grid(row=2, column=1, pady=10, padx=10)
         self.product_combo.bind("<<ComboboxSelected>>", self.on_product_selected)
         
-        # Size
+        # --- Row 3: Size ---
         tk.Label(
             form_frame,
             text="Size:",
             font=("Arial", 12, "bold"),
             bg="white"
-        ).grid(row=2, column=0, sticky="w", pady=10, padx=10)
+        ).grid(row=3, column=0, sticky="w", pady=10, padx=10)
         
         self.size_combo = ttk.Combobox(
             form_frame,
@@ -83,7 +150,7 @@ class TransactionModule:
             width=33,
             state="readonly"
         )
-        self.size_combo.grid(row=2, column=1, pady=10, padx=10)
+        self.size_combo.grid(row=3, column=1, pady=10, padx=10)
         self.size_combo.bind("<<ComboboxSelected>>", self.on_size_selected)
         
         # Available Stock Display
@@ -92,33 +159,33 @@ class TransactionModule:
             text="Available Stock: --",
             font=("Arial", 11, "italic"),
             bg="white",
-            fg="#e74c3c"  # Keep red for warning/info
+            fg="#e74c3c"
         )
-        self.stock_label.grid(row=2, column=2, pady=10, padx=10)
+        self.stock_label.grid(row=3, column=2, pady=10, padx=10)
         
-        # Quantity
+        # --- Row 4: Quantity ---
         tk.Label(
             form_frame,
             text="Quantity:",
             font=("Arial", 12, "bold"),
             bg="white"
-        ).grid(row=3, column=0, sticky="w", pady=10, padx=10)
+        ).grid(row=4, column=0, sticky="w", pady=10, padx=10)
         
         self.quantity_entry = tk.Entry(
             form_frame,
             font=("Arial", 12),
             width=35
         )
-        self.quantity_entry.grid(row=3, column=1, pady=10, padx=10)
+        self.quantity_entry.grid(row=4, column=1, pady=10, padx=10)
         self.quantity_entry.bind("<KeyRelease>", self.calculate_amount)
         
-        # Price per Unit
+        # --- Row 5: Price ---
         tk.Label(
             form_frame,
             text="Price per Unit:",
             font=("Arial", 12, "bold"),
             bg="white"
-        ).grid(row=4, column=0, sticky="w", pady=10, padx=10)
+        ).grid(row=5, column=0, sticky="w", pady=10, padx=10)
         
         self.price_entry = tk.Entry(
             form_frame,
@@ -126,68 +193,68 @@ class TransactionModule:
             width=35,
             state="readonly"
         )
-        self.price_entry.grid(row=4, column=1, pady=10, padx=10)
+        self.price_entry.grid(row=5, column=1, pady=10, padx=10)
         
-        # Total Amount
+        # --- Row 6: Total Amount ---
         tk.Label(
             form_frame,
             text="Total Amount:",
             font=("Arial", 12, "bold"),
             bg="white",
-            fg="#800000"  # Maroon for emphasis
-        ).grid(row=5, column=0, sticky="w", pady=10, padx=10)
+            fg="#800000"
+        ).grid(row=6, column=0, sticky="w", pady=10, padx=10)
         
         self.amount_entry = tk.Entry(
             form_frame,
             font=("Arial", 14, "bold"),
             width=35,
             state="readonly",
-            fg="#800000"  # Maroon
+            fg="#800000"
         )
-        self.amount_entry.grid(row=5, column=1, pady=10, padx=10)
+        self.amount_entry.grid(row=6, column=1, pady=10, padx=10)
         
-        # OR Number
+        # --- Row 7: OR Number ---
         tk.Label(
             form_frame,
             text="OR Number:",
             font=("Arial", 12, "bold"),
             bg="white"
-        ).grid(row=6, column=0, sticky="w", pady=10, padx=10)
+        ).grid(row=7, column=0, sticky="w", pady=10, padx=10)
         
         self.or_number_entry = tk.Entry(
             form_frame,
             font=("Arial", 12),
             width=35
         )
-        self.or_number_entry.grid(row=6, column=1, pady=10, padx=10)
+        self.or_number_entry.grid(row=7, column=1, pady=10, padx=10)
         
-        # Date
+        # --- Row 8: Date ---
         tk.Label(
             form_frame,
             text="Date:",
             font=("Arial", 12, "bold"),
             bg="white"
-        ).grid(row=7, column=0, sticky="w", pady=10, padx=10)
+        ).grid(row=8, column=0, sticky="w", pady=10, padx=10)
         
         self.date_entry = tk.Entry(
             form_frame,
             font=("Arial", 12),
             width=35
         )
-        self.date_entry.grid(row=7, column=1, pady=10, padx=10)
+        self.date_entry.grid(row=8, column=1, pady=10, padx=10)
         self.date_entry.insert(0, datetime.now().strftime("%Y-%m-%d"))
         
         # Buttons frame
         button_frame = tk.Frame(self.main_frame, bg="white")
         button_frame.pack(pady=20)
         
-        # Save button (Accent Color)
+        # Save button
         save_btn = tk.Button(
             button_frame,
             text="💾 SAVE TRANSACTION",
             font=("Arial", 13, "bold"),
             bg="#FFC107",  # Yellow
-            fg="black",    # Black text on yellow
+            fg="black",
             padx=30,
             pady=15,
             cursor="hand2",
@@ -195,13 +262,13 @@ class TransactionModule:
         )
         save_btn.pack(side=tk.LEFT, padx=10)
         
-        # Clear button (Secondary Color)
+        # Clear button
         clear_btn = tk.Button(
             button_frame,
             text="🔄 CLEAR FORM",
             font=("Arial", 13, "bold"),
             bg="#800000",  # Maroon
-            fg="white",    # White text
+            fg="white",
             padx=30,
             pady=15,
             cursor="hand2",
@@ -250,7 +317,7 @@ class TransactionModule:
             if product_data:
                 item_id, prod_name, prod_size, stock, price = product_data
                 
-                # Update stock label (Keep logic for red/green for stock health)
+                # Update stock label
                 stock_color = "#27ae60" if stock > 10 else "#e74c3c"
                 self.stock_label.config(
                     text=f"Available Stock: {stock}",
@@ -293,6 +360,11 @@ class TransactionModule:
             self.buyer_name_entry.focus()
             return False
         
+        # Check course/program (Optional but good to have)
+        if not self.course_combo.get().strip():
+            messagebox.showerror("Validation Error", "Please select a Program/Course")
+            return False
+
         # Check product
         if not self.product_combo.get():
             messagebox.showerror("Validation Error", "Please select a product")
@@ -353,6 +425,7 @@ class TransactionModule:
         try:
             # Get form data
             buyer_name = self.buyer_name_entry.get().strip()
+            program_course = self.course_combo.get().strip() # Get course
             product = self.product_combo.get()
             size = self.size_combo.get()
             quantity = int(self.quantity_entry.get())
@@ -360,9 +433,9 @@ class TransactionModule:
             or_number = self.or_number_entry.get().strip()
             date = self.date_entry.get()
             
-            # Save to database
+            # Save to database (Pass program_course)
             success = self.db.add_transaction(
-                buyer_name, product, size, quantity, amount, or_number, date
+                buyer_name, product, size, quantity, amount, or_number, date, program_course
             )
             
             if success:
@@ -382,6 +455,7 @@ class TransactionModule:
     def clear_form(self):
         """Clear all form fields"""
         self.buyer_name_entry.delete(0, tk.END)
+        self.course_combo.set('') # Clear course
         self.product_combo.set('')
         self.size_combo.set('')
         self.size_combo['values'] = []

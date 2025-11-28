@@ -20,6 +20,7 @@ class DatabaseManager:
         self.db_path = db_path
         self.ensure_database_directory()
         self.initialize_database()
+        self.check_and_update_schema()
     
     def ensure_database_directory(self):
         """Create database directory if it doesn't exist"""
@@ -59,6 +60,7 @@ class DatabaseManager:
             CREATE TABLE IF NOT EXISTS transactions (
                 transaction_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 buyer_name TEXT NOT NULL,
+                program_course TEXT,
                 product_name TEXT NOT NULL,
                 size TEXT NOT NULL,
                 quantity INTEGER NOT NULL,
@@ -69,7 +71,7 @@ class DatabaseManager:
             )
         ''')
         
-        # Create index for faster searches
+        # Create indexes
         cursor.execute('''
             CREATE INDEX IF NOT EXISTS idx_transactions_date 
             ON transactions(date)
@@ -87,23 +89,31 @@ class DatabaseManager:
         
         conn.commit()
         conn.close()
-        print("✓ Database initialized successfully")
+
+    def check_and_update_schema(self):
+        """Check for missing columns and update schema if necessary (Migration)"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            # Check if program_course exists in transactions
+            cursor.execute("PRAGMA table_info(transactions)")
+            columns = [info[1] for info in cursor.fetchall()]
+            
+            if "program_course" not in columns:
+                print("Migrating database: Adding program_course column...")
+                cursor.execute("ALTER TABLE transactions ADD COLUMN program_course TEXT")
+                conn.commit()
+                print("Migration successful.")
+                
+            conn.close()
+        except Exception as e:
+            print(f"Schema update error: {e}")
     
     # ========== INVENTORY OPERATIONS ==========
     
     def add_product(self, product_name, size, stock, price):
-        """
-        Add a new product to inventory
-        
-        Args:
-            product_name (str): Name of the product
-            size (str): Size of the product
-            stock (int): Initial stock quantity
-            price (float): Price per unit
-            
-        Returns:
-            bool: True if successful, False otherwise
-        """
+        """Add a new product to inventory"""
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
@@ -121,19 +131,7 @@ class DatabaseManager:
             return False
     
     def update_product(self, item_id, product_name, size, stock, price):
-        """
-        Update an existing product in inventory
-        
-        Args:
-            item_id (int): ID of the product to update
-            product_name (str): Updated product name
-            size (str): Updated size
-            stock (int): Updated stock quantity
-            price (float): Updated price
-            
-        Returns:
-            bool: True if successful, False otherwise
-        """
+        """Update an existing product in inventory"""
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
@@ -153,17 +151,7 @@ class DatabaseManager:
             return False
     
     def update_stock(self, product_name, size, quantity_change):
-        """
-        Update stock quantity for a product (increase or decrease)
-        
-        Args:
-            product_name (str): Name of the product
-            size (str): Size of the product
-            quantity_change (int): Amount to change stock by (negative to decrease)
-            
-        Returns:
-            bool: True if successful, False otherwise
-        """
+        """Update stock quantity for a product"""
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
@@ -201,21 +189,11 @@ class DatabaseManager:
             return False
     
     def delete_product(self, item_id):
-        """
-        Delete a product from inventory
-        
-        Args:
-            item_id (int): ID of the product to delete
-            
-        Returns:
-            bool: True if successful, False otherwise
-        """
+        """Delete a product from inventory"""
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
-            
             cursor.execute('DELETE FROM inventory WHERE item_id = ?', (item_id,))
-            
             conn.commit()
             conn.close()
             return True
@@ -224,22 +202,15 @@ class DatabaseManager:
             return False
     
     def get_all_inventory(self):
-        """
-        Get all products from inventory
-        
-        Returns:
-            list: List of tuples containing inventory data
-        """
+        """Get all products from inventory"""
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
-            
             cursor.execute('''
                 SELECT item_id, product_name, size, stock, price 
                 FROM inventory 
                 ORDER BY product_name, size
             ''')
-            
             results = cursor.fetchall()
             conn.close()
             return results
@@ -248,26 +219,15 @@ class DatabaseManager:
             return []
     
     def get_product_by_name_size(self, product_name, size):
-        """
-        Get product details by name and size
-        
-        Args:
-            product_name (str): Name of the product
-            size (str): Size of the product
-            
-        Returns:
-            tuple: Product data or None if not found
-        """
+        """Get product details by name and size"""
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
-            
             cursor.execute('''
                 SELECT item_id, product_name, size, stock, price 
                 FROM inventory 
                 WHERE product_name = ? AND size = ?
             ''', (product_name, size))
-            
             result = cursor.fetchone()
             conn.close()
             return result
@@ -276,25 +236,14 @@ class DatabaseManager:
             return None
     
     def get_available_stock(self, product_name, size):
-        """
-        Get available stock for a specific product and size
-        
-        Args:
-            product_name (str): Name of the product
-            size (str): Size of the product
-            
-        Returns:
-            int: Available stock quantity or 0 if not found
-        """
+        """Get available stock for a specific product and size"""
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
-            
             cursor.execute('''
                 SELECT stock FROM inventory 
                 WHERE product_name = ? AND size = ?
             ''', (product_name, size))
-            
             result = cursor.fetchone()
             conn.close()
             return result[0] if result else 0
@@ -303,18 +252,11 @@ class DatabaseManager:
             return 0
     
     def get_unique_products(self):
-        """
-        Get list of unique product names
-        
-        Returns:
-            list: List of unique product names
-        """
+        """Get list of unique product names"""
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
-            
             cursor.execute('SELECT DISTINCT product_name FROM inventory ORDER BY product_name')
-            
             results = [row[0] for row in cursor.fetchall()]
             conn.close()
             return results
@@ -323,25 +265,15 @@ class DatabaseManager:
             return []
     
     def get_sizes_for_product(self, product_name):
-        """
-        Get available sizes for a specific product
-        
-        Args:
-            product_name (str): Name of the product
-            
-        Returns:
-            list: List of available sizes
-        """
+        """Get available sizes for a specific product"""
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
-            
             cursor.execute('''
                 SELECT size FROM inventory 
                 WHERE product_name = ? 
                 ORDER BY size
             ''', (product_name,))
-            
             results = [row[0] for row in cursor.fetchall()]
             conn.close()
             return results
@@ -351,22 +283,8 @@ class DatabaseManager:
     
     # ========== TRANSACTION OPERATIONS ==========
     
-    def add_transaction(self, buyer_name, product_name, size, quantity, amount, or_number, date=None):
-        """
-        Add a new sales transaction
-        
-        Args:
-            buyer_name (str): Name of the buyer
-            product_name (str): Name of the product
-            size (str): Size of the product
-            quantity (int): Quantity purchased
-            amount (float): Total amount
-            or_number (str): Official Receipt number
-            date (str): Transaction date (defaults to today)
-            
-        Returns:
-            bool: True if successful, False otherwise
-        """
+    def add_transaction(self, buyer_name, product_name, size, quantity, amount, or_number, date=None, program_course=None):
+        """Add a new sales transaction"""
         try:
             if date is None:
                 date = datetime.now().strftime("%Y-%m-%d")
@@ -379,9 +297,9 @@ class DatabaseManager:
             cursor = conn.cursor()
             
             cursor.execute('''
-                INSERT INTO transactions (buyer_name, product_name, size, quantity, amount, or_number, date)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (buyer_name, product_name, size, quantity, amount, or_number, date))
+                INSERT INTO transactions (buyer_name, program_course, product_name, size, quantity, amount, or_number, date)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (buyer_name, program_course, product_name, size, quantity, amount, or_number, date))
             
             conn.commit()
             conn.close()
@@ -391,22 +309,16 @@ class DatabaseManager:
             return False
     
     def get_all_transactions(self):
-        """
-        Get all transactions
-        
-        Returns:
-            list: List of all transactions
-        """
+        """Get all transactions"""
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
-            
+            # Note: We keep original column selection for compatibility with history module
             cursor.execute('''
                 SELECT transaction_id, buyer_name, product_name, size, quantity, amount, or_number, date
                 FROM transactions
                 ORDER BY date DESC, transaction_id DESC
             ''')
-            
             results = cursor.fetchall()
             conn.close()
             return results
@@ -414,21 +326,8 @@ class DatabaseManager:
             print(f"Error fetching transactions: {e}")
             return []
     
-    def search_transactions(self, buyer_name=None, product_name=None, or_number=None, 
-                           start_date=None, end_date=None):
-        """
-        Search transactions with multiple filters
-        
-        Args:
-            buyer_name (str): Filter by buyer name (partial match)
-            product_name (str): Filter by product name (partial match)
-            or_number (str): Filter by OR number (partial match)
-            start_date (str): Start date for date range
-            end_date (str): End date for date range
-            
-        Returns:
-            list: Filtered list of transactions
-        """
+    def search_transactions(self, buyer_name=None, product_name=None, or_number=None, start_date=None, end_date=None):
+        """Search transactions with multiple filters"""
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
@@ -471,16 +370,7 @@ class DatabaseManager:
             return []
     
     def get_monthly_report(self, year, month):
-        """
-        Get monthly sales report
-        
-        Args:
-            year (int): Year
-            month (int): Month (1-12)
-            
-        Returns:
-            dict: Dictionary containing report data
-        """
+        """Get monthly sales report"""
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
@@ -491,26 +381,21 @@ class DatabaseManager:
             else:
                 end_date = f"{year}-{month + 1:02d}-01"
             
-            # Get total sales
             cursor.execute('''
                 SELECT COUNT(*), SUM(quantity), SUM(amount)
                 FROM transactions
                 WHERE date >= ? AND date < ?
             ''', (start_date, end_date))
-            
             totals = cursor.fetchone()
             
-            # Get detailed transactions
             cursor.execute('''
                 SELECT transaction_id, buyer_name, product_name, size, quantity, amount, or_number, date
                 FROM transactions
                 WHERE date >= ? AND date < ?
                 ORDER BY date, transaction_id
             ''', (start_date, end_date))
-            
             transactions = cursor.fetchall()
             
-            # Get product summary
             cursor.execute('''
                 SELECT product_name, size, SUM(quantity) as total_qty, SUM(amount) as total_amount
                 FROM transactions
@@ -518,7 +403,6 @@ class DatabaseManager:
                 GROUP BY product_name, size
                 ORDER BY product_name, size
             ''', (start_date, end_date))
-            
             product_summary = cursor.fetchall()
             
             conn.close()
@@ -532,49 +416,29 @@ class DatabaseManager:
             }
         except Exception as e:
             print(f"Error generating monthly report: {e}")
-            return {
-                'total_transactions': 0,
-                'total_items_sold': 0,
-                'total_revenue': 0.0,
-                'transactions': [],
-                'product_summary': []
-            }
+            return {'total_transactions': 0, 'total_items_sold': 0, 'total_revenue': 0.0, 'transactions': [], 'product_summary': []}
     
     def get_date_range_report(self, start_date, end_date):
-        """
-        Get sales report for custom date range
-        
-        Args:
-            start_date (str): Start date (YYYY-MM-DD)
-            end_date (str): End date (YYYY-MM-DD)
-            
-        Returns:
-            dict: Dictionary containing report data
-        """
+        """Get sales report for custom date range"""
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
             
-            # Get total sales
             cursor.execute('''
                 SELECT COUNT(*), SUM(quantity), SUM(amount)
                 FROM transactions
                 WHERE date >= ? AND date <= ?
             ''', (start_date, end_date))
-            
             totals = cursor.fetchone()
             
-            # Get detailed transactions
             cursor.execute('''
                 SELECT transaction_id, buyer_name, product_name, size, quantity, amount, or_number, date
                 FROM transactions
                 WHERE date >= ? AND date <= ?
                 ORDER BY date, transaction_id
             ''', (start_date, end_date))
-            
             transactions = cursor.fetchall()
             
-            # Get product summary
             cursor.execute('''
                 SELECT product_name, size, SUM(quantity) as total_qty, SUM(amount) as total_amount
                 FROM transactions
@@ -582,7 +446,6 @@ class DatabaseManager:
                 GROUP BY product_name, size
                 ORDER BY product_name, size
             ''', (start_date, end_date))
-            
             product_summary = cursor.fetchall()
             
             conn.close()
@@ -596,28 +459,4 @@ class DatabaseManager:
             }
         except Exception as e:
             print(f"Error generating date range report: {e}")
-            return {
-                'total_transactions': 0,
-                'total_items_sold': 0,
-                'total_revenue': 0.0,
-                'transactions': [],
-                'product_summary': []
-            }
-
-
-# Test database initialization
-if __name__ == "__main__":
-    db = DatabaseManager()
-    print("Database manager initialized successfully!")
-    
-    # Add sample data for testing
-    print("\nAdding sample inventory...")
-    db.add_product("T-Shirt", "S", 50, 250.00)
-    db.add_product("T-Shirt", "M", 75, 250.00)
-    db.add_product("T-Shirt", "L", 60, 250.00)
-    db.add_product("T-Shirt", "XL", 40, 250.00)
-    db.add_product("Polo Shirt", "M", 30, 350.00)
-    db.add_product("Polo Shirt", "L", 25, 350.00)
-    db.add_product("Cap", "One Size", 100, 150.00)
-    
-    print("Sample data added successfully!")
+            return {'total_transactions': 0, 'total_items_sold': 0, 'total_revenue': 0.0, 'transactions': [], 'product_summary': []}
