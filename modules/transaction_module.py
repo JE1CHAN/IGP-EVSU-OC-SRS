@@ -80,7 +80,7 @@ class TransactionModule:
             "BSES (Environmental Science)",
             "BSChem",
             "BSStat",
-            "BHumServ (Human Services)",
+            "BHumServ",
             "BSE (Entrepreneurship)",
             "BSOA (Office Admin)",
             "BSA (Accountancy)",
