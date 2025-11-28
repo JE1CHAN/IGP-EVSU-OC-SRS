@@ -6,6 +6,7 @@ Handles recording of sales transactions with validation and stock management
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
+from tkcalendar import DateEntry
 
 
 class TransactionModule:
@@ -70,12 +71,11 @@ class TransactionModule:
         
         # Cleaned list based on your input
         course_list = [
-            "BSAr (Architecture)",
-            "BSID (Interior Design)",
-            "SAS (Arts and Sciences)",
+            "BSAr",
+            "BSID",
+            "SAS",
             "BS Economics",
             "AB Filipino",
-            "BAEL (English Language)",
             "BSMath",
             "BSES (Environmental Science)",
             "BSChem",
@@ -99,7 +99,6 @@ class TransactionModule:
             "BTLEd - IA (Industrial Arts)",
             "BTLEd - HE (Home Economics)",
             "DTS (Diploma Teaching Sec)",
-            "SOE (School of Engineering)",
             "BSChE (Chemical Eng)",
             "BSCE (Civil Eng)",
             "BSEE (Electrical Eng)",
@@ -107,9 +106,8 @@ class TransactionModule:
             "BSGE (Geodetic Eng)",
             "BSME (Mechanical Eng)",
             "BSIE (Industrial Eng)",
-            "BSIT (Info Tech)",
-            "SOT (School of Tech)",
-            "BSHM (Hospitality Mgmt)",
+            "BSIT",
+            "BSHM",
             "BSND (Nutrition & Dietetics)",
             "BIndTech",
             "BSMT - Automotive",
@@ -161,31 +159,31 @@ class TransactionModule:
             bg="white",
             fg="#e74c3c"
         )
-        self.stock_label.grid(row=3, column=2, pady=10, padx=10)
+        self.stock_label.grid(row=4, column=1, pady=0, padx=10)
         
-        # --- Row 4: Quantity ---
+        # --- Row 5: Quantity ---
         tk.Label(
             form_frame,
             text="Quantity:",
             font=("Arial", 12, "bold"),
             bg="white"
-        ).grid(row=4, column=0, sticky="w", pady=10, padx=10)
+        ).grid(row=5, column=0, sticky="w", pady=10, padx=10)
         
         self.quantity_entry = tk.Entry(
             form_frame,
             font=("Arial", 12),
             width=35
         )
-        self.quantity_entry.grid(row=4, column=1, pady=10, padx=10)
+        self.quantity_entry.grid(row=5, column=1, pady=10, padx=10)
         self.quantity_entry.bind("<KeyRelease>", self.calculate_amount)
         
-        # --- Row 5: Price ---
+        # --- Row 6: Price ---
         tk.Label(
             form_frame,
             text="Price per Unit:",
             font=("Arial", 12, "bold"),
             bg="white"
-        ).grid(row=5, column=0, sticky="w", pady=10, padx=10)
+        ).grid(row=6, column=0, sticky="w", pady=10, padx=10)
         
         self.price_entry = tk.Entry(
             form_frame,
@@ -193,16 +191,16 @@ class TransactionModule:
             width=35,
             state="readonly"
         )
-        self.price_entry.grid(row=5, column=1, pady=10, padx=10)
+        self.price_entry.grid(row=6, column=1, pady=10, padx=10)
         
-        # --- Row 6: Total Amount ---
+        # --- Row 7: Total Amount ---
         tk.Label(
             form_frame,
             text="Total Amount:",
             font=("Arial", 12, "bold"),
             bg="white",
             fg="#800000"
-        ).grid(row=6, column=0, sticky="w", pady=10, padx=10)
+        ).grid(row=7, column=0, sticky="w", pady=10, padx=10)
         
         self.amount_entry = tk.Entry(
             form_frame,
@@ -211,38 +209,42 @@ class TransactionModule:
             state="readonly",
             fg="#800000"
         )
-        self.amount_entry.grid(row=6, column=1, pady=10, padx=10)
+        self.amount_entry.grid(row=7, column=1, pady=10, padx=10)
         
-        # --- Row 7: OR Number ---
+        # --- Row 8: OR Number ---
         tk.Label(
             form_frame,
             text="OR Number:",
             font=("Arial", 12, "bold"),
             bg="white"
-        ).grid(row=7, column=0, sticky="w", pady=10, padx=10)
+        ).grid(row=8, column=0, sticky="w", pady=10, padx=10)
         
         self.or_number_entry = tk.Entry(
             form_frame,
             font=("Arial", 12),
             width=35
         )
-        self.or_number_entry.grid(row=7, column=1, pady=10, padx=10)
+        self.or_number_entry.grid(row=8, column=1, pady=10, padx=10)
         
-        # --- Row 8: Date ---
+        # --- Row 9: Date ---
+        # Date (Calendar Picker)
         tk.Label(
             form_frame,
             text="Date:",
             font=("Arial", 12, "bold"),
             bg="white"
-        ).grid(row=8, column=0, sticky="w", pady=10, padx=10)
-        
-        self.date_entry = tk.Entry(
+        ).grid(row=9, column=0, sticky="w", pady=10, padx=10)
+
+        self.date_entry = DateEntry(
             form_frame,
             font=("Arial", 12),
-            width=35
+            width=33,
+            background="maroon",
+            foreground="white",
+            borderwidth=2,
+            date_pattern="yyyy-mm-dd"  # Ensures same format used in validation
         )
-        self.date_entry.grid(row=8, column=1, pady=10, padx=10)
-        self.date_entry.insert(0, datetime.now().strftime("%Y-%m-%d"))
+        self.date_entry.grid(row=9, column=1, pady=10, padx=10)
         
         # Buttons frame
         button_frame = tk.Frame(self.main_frame, bg="white")
