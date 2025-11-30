@@ -139,12 +139,20 @@ class TransactionModule:
             bg="white"
         ).grid(row=5, column=0, sticky="w", pady=10, padx=10)
         
-        self.quantity_entry = tk.Entry(
+        # Spinbox for quantity (only positive integers)
+        vcmd = (form_frame.register(self._validate_positive_int), '%P')
+        self.quantity_entry = tk.Spinbox(
             form_frame,
+            from_=1,
+            to=999999,
             font=("Arial", 12),
-            width=35
+            width=34,
+            validate='key',
+            validatecommand=vcmd,
+            command=self.calculate_amount
         )
         self.quantity_entry.grid(row=5, column=1, pady=10, padx=10)
+        # Also recalc when user types directly
         self.quantity_entry.bind("<KeyRelease>", self.calculate_amount)
         
         # --- Row 6: Price ---
@@ -313,7 +321,10 @@ class TransactionModule:
     def calculate_amount(self, event=None):
         """Calculate total amount based on quantity and price"""
         try:
-            quantity = int(self.quantity_entry.get())
+            quantity_text = self.quantity_entry.get()
+            if quantity_text == "":
+                raise ValueError()
+            quantity = int(quantity_text)
             price_text = self.price_entry.get().replace('₱', '').replace(',', '')
             
             if price_text:
@@ -328,6 +339,17 @@ class TransactionModule:
             self.amount_entry.config(state="normal")
             self.amount_entry.delete(0, tk.END)
             self.amount_entry.config(state="readonly")
+
+    def _validate_positive_int(self, proposed: str) -> bool:
+        """Validate that the Spinbox input is a positive integer or empty during edit."""
+        if proposed == "":
+            return True
+        if proposed.isdigit():
+            try:
+                return int(proposed) > 0
+            except Exception:
+                return False
+        return False
     
     def validate_form(self):
         """Validate all form fields"""
@@ -436,7 +458,12 @@ class TransactionModule:
         self.product_combo.set('')
         self.size_combo.set('')
         self.size_combo['values'] = []
-        self.quantity_entry.delete(0, tk.END)
+        # Reset quantity to default 1
+        try:
+            self.quantity_entry.delete(0, tk.END)
+        except Exception:
+            pass
+        self.quantity_entry.insert(0, "1")
         self.price_entry.config(state="normal")
         self.price_entry.delete(0, tk.END)
         self.price_entry.config(state="readonly")
