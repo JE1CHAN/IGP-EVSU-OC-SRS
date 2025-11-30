@@ -233,6 +233,15 @@ class ReportsModule:
             report_data
         )
     
+    def center_window(self, window):
+        """Center a window on screen"""
+        window.update_idletasks()
+        width = window.winfo_width()
+        height = window.winfo_height()
+        x = (window.winfo_screenwidth() // 2) - (width // 2)
+        y = (window.winfo_screenheight() // 2) - (height // 2) - 35
+        window.geometry(f'{width}x{height}+{x}+{y}')
+    
     def display_report(self, title, report_data):
         """Display report in a new window"""
         # Clear current report frame
@@ -244,6 +253,9 @@ class ReportsModule:
         report_window.title(title)
         report_window.geometry("900x700")
         report_window.configure(bg="white")
+        
+        # Center the window on screen
+        self.center_window(report_window)
         
         # Create scrollable frame
         canvas = tk.Canvas(report_window, bg="white")
@@ -257,6 +269,14 @@ class ReportsModule:
         
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Bind mouse wheel scroll to canvas
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+        canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        
+        
         
         # Report Header (Maroon)
         header_frame = tk.Frame(scrollable_frame, bg="#800000", padx=20, pady=20)
@@ -434,7 +454,7 @@ class ReportsModule:
             ).pack(pady=30)
         
         # Button frame
-        button_frame = tk.Frame(scrollable_frame, bg="white", pady=20)
+        button_frame = tk.Frame(scrollable_frame, bg="white", pady=20, padx=20)
         button_frame.pack(fill=tk.X)
         
         # REMOVED PRINT BUTTON AS REQUESTED
@@ -442,7 +462,7 @@ class ReportsModule:
         # Export CSV button (Green)
         tk.Button(
             button_frame,
-            text="💾 Export CSV",
+            text="💾 Export to Excel",
             font=("Arial", 12, "bold"),
             bg="#27ae60",  # Green
             fg="white",    # White
