@@ -134,7 +134,7 @@ class InventoryModule:
         table_frame.pack(fill=tk.BOTH, expand=True)
         
         # Create Treeview
-        columns = ("ID", "Product Name", "Size", "Stock", "Price")
+        columns = ("ID", "Product Name", "Size", "Batch", "Stock", "Price")
         self.tree = ttk.Treeview(
             table_frame,
             columns=columns,
@@ -146,6 +146,7 @@ class InventoryModule:
         self.tree.heading("ID", text="ID")
         self.tree.heading("Product Name", text="Product Name")
         self.tree.heading("Size", text="Size")
+        self.tree.heading("Batch", text="Batch")
         self.tree.heading("Stock", text="Available Stock")
         self.tree.heading("Price", text="Price (₱)")
         
@@ -153,8 +154,9 @@ class InventoryModule:
         self.tree.column("ID", width=50, anchor="center")
         self.tree.column("Product Name", width=300, anchor="w")
         self.tree.column("Size", width=100, anchor="center")
-        self.tree.column("Stock", width=150, anchor="center")
-        self.tree.column("Price", width=150, anchor="e")
+        self.tree.column("Batch", width=120, anchor="center")
+        self.tree.column("Stock", width=120, anchor="center")
+        self.tree.column("Price", width=120, anchor="e")
         
         # Scrollbars
         vsb = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
@@ -210,7 +212,8 @@ class InventoryModule:
     def populate_tree(self, inventory_list):
         """Helper to insert items into treeview"""
         for item in inventory_list:
-            item_id, product_name, size, stock, price = item
+            # item structure: (item_id, product_name, size, batch, stock, price)
+            item_id, product_name, size, batch, stock, price = item
             
             # Format price
             price_str = f"₱{price:,.2f}"
@@ -226,7 +229,7 @@ class InventoryModule:
             self.tree.insert(
                 "",
                 tk.END,
-                values=(item_id, product_name, size, stock, price_str),
+                values=(item_id, product_name, size, batch, stock, price_str),
                 tags=(tag,) if tag else ()
             )
     
@@ -391,16 +394,27 @@ class InventoryModule:
         size_entry = tk.Entry(form_frame, font=("Arial", 11), width=25)
         size_entry.grid(row=1, column=1, pady=10, padx=10)
         
+        # Batch
+        tk.Label(
+            form_frame,
+            text="Batch:",
+            font=("Arial", 11, "bold"),
+            bg="white"
+        ).grid(row=2, column=0, sticky="w", pady=10, padx=10)
+        
+        batch_entry = tk.Entry(form_frame, font=("Arial", 11), width=25)
+        batch_entry.grid(row=2, column=1, pady=10, padx=10)
+        
         # Initial Stock
         tk.Label(
             form_frame,
             text="Initial Stock:",
             font=("Arial", 11, "bold"),
             bg="white"
-        ).grid(row=2, column=0, sticky="w", pady=10, padx=10)
+        ).grid(row=3, column=0, sticky="w", pady=10, padx=10)
         
         stock_entry = tk.Entry(form_frame, font=("Arial", 11), width=25)
-        stock_entry.grid(row=2, column=1, pady=10, padx=10)
+        stock_entry.grid(row=3, column=1, pady=10, padx=10)
         
         # Price
         tk.Label(
@@ -408,10 +422,10 @@ class InventoryModule:
             text="Price (₱):",
             font=("Arial", 11, "bold"),
             bg="white"
-        ).grid(row=3, column=0, sticky="w", pady=10, padx=10)
+        ).grid(row=4, column=0, sticky="w", pady=10, padx=10)
         
         price_entry = tk.Entry(form_frame, font=("Arial", 11), width=25)
-        price_entry.grid(row=3, column=1, pady=10, padx=10)
+        price_entry.grid(row=4, column=1, pady=10, padx=10)
         
         # Button frame
         btn_frame = tk.Frame(dialog, bg="white")
@@ -421,7 +435,8 @@ class InventoryModule:
             """Validate and save product"""
             product = product_entry.get().strip()
             size = size_entry.get().strip()
-            
+            batch = batch_entry.get().strip()
+
             try:
                 stock = int(stock_entry.get())
                 price = float(price_entry.get())
@@ -444,7 +459,7 @@ class InventoryModule:
                     return
                 
                 # Save to database
-                if self.db.add_product(product, size, stock, price):
+                if self.db.add_product(product, size, stock, price, batch):
                     messagebox.showinfo("Success", "Product added successfully!")
                     dialog.destroy()
                     self.load_inventory()
@@ -486,7 +501,7 @@ class InventoryModule:
             messagebox.showwarning("Warning", "Please select a product to update")
             return
         
-        item_id, product_name, size, stock, price_str = self.selected_item
+        item_id, product_name, size, batch_val, stock, price_str = self.selected_item
         price = float(price_str.replace('₱', '').replace(',', ''))
         
         dialog = tk.Toplevel(self.parent)
@@ -536,16 +551,27 @@ class InventoryModule:
         size_entry.grid(row=1, column=1, pady=10, padx=10)
         size_entry.insert(0, size)
         
+        # Batch
+        tk.Label(
+            form_frame,
+            text="Batch:",
+            font=("Arial", 11, "bold"),
+            bg="white"
+        ).grid(row=2, column=0, sticky="w", pady=10, padx=10)
+        batch_entry = tk.Entry(form_frame, font=("Arial", 11), width=25)
+        batch_entry.grid(row=2, column=1, pady=10, padx=10)
+        batch_entry.insert(0, batch_val)
+        
         # Stock
         tk.Label(
             form_frame,
             text="Stock:",
             font=("Arial", 11, "bold"),
             bg="white"
-        ).grid(row=2, column=0, sticky="w", pady=10, padx=10)
+        ).grid(row=3, column=0, sticky="w", pady=10, padx=10)
         
         stock_entry = tk.Entry(form_frame, font=("Arial", 11), width=25)
-        stock_entry.grid(row=2, column=1, pady=10, padx=10)
+        stock_entry.grid(row=3, column=1, pady=10, padx=10)
         stock_entry.insert(0, str(stock))
         
         # Price
@@ -554,10 +580,10 @@ class InventoryModule:
             text="Price (₱):",
             font=("Arial", 11, "bold"),
             bg="white"
-        ).grid(row=3, column=0, sticky="w", pady=10, padx=10)
+        ).grid(row=4, column=0, sticky="w", pady=10, padx=10)
         
         price_entry = tk.Entry(form_frame, font=("Arial", 11), width=25)
-        price_entry.grid(row=3, column=1, pady=10, padx=10)
+        price_entry.grid(row=4, column=1, pady=10, padx=10)
         price_entry.insert(0, str(price))
         
         # Button frame
@@ -568,7 +594,8 @@ class InventoryModule:
             """Validate and update product"""
             product = product_entry.get().strip()
             size_val = size_entry.get().strip()
-            
+            batch_val_new = batch_entry.get().strip()
+
             try:
                 stock_val = int(stock_entry.get())
                 price_val = float(price_entry.get())
@@ -582,7 +609,7 @@ class InventoryModule:
                     return
                 
                 # Update in database
-                if self.db.update_product(item_id, product, size_val, stock_val, price_val):
+                if self.db.update_product(item_id, product, size_val, stock_val, price_val, batch_val_new):
                     messagebox.showinfo("Success", "Product updated successfully!")
                     dialog.destroy()
                     self.load_inventory()

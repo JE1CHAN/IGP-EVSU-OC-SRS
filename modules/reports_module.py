@@ -427,7 +427,8 @@ class ReportsModule:
             trans_tree.column("OR#", width=100, anchor="center")
             
             for trans in report_data['transactions']:
-                trans_id, buyer, product, size, qty, amount, or_num, date = trans
+                # transaction tuple now: (id, buyer_name, program_course, product_name, size, quantity, amount, or_number, date)
+                trans_id, buyer, course, product, size, qty, amount, or_num, date = trans
                 trans_tree.insert(
                     "",
                     tk.END,
@@ -509,35 +510,85 @@ class ReportsModule:
 
             with open(filepath, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
-                
-                # Header
-                writer.writerow(["EVSU-OC IGP SALES RECORD SYSTEM"])
-                writer.writerow([title])
-                writer.writerow([f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"])
-                writer.writerow([])
-                
-                # Summary Section
-                writer.writerow(["SUMMARY"])
-                writer.writerow(["Total Transactions", report_data['total_transactions']])
-                writer.writerow(["Total Items Sold", report_data['total_items_sold']])
-                writer.writerow(["Total Revenue", f"{report_data['total_revenue']:.2f}"])
-                writer.writerow([])
-                
-                # Product Summary Section
-                if report_data['product_summary']:
-                    writer.writerow(["PRODUCT SUMMARY"])
-                    writer.writerow(["Product", "Size", "Quantity", "Revenue"])
-                    for item in report_data['product_summary']:
-                        writer.writerow(item)
-                    writer.writerow([])
-                
-                # Detailed Transactions Section
+                     
+                # Detailed Transactions Section - group by product and include batch
                 if report_data['transactions']:
-                    writer.writerow(["DETAILED TRANSACTIONS"])
-                    writer.writerow(["ID", "Buyer Name", "Product", "Size", "Quantity", "Amount", "OR Number", "Date"])
-                    
-                    for trans in report_data['transactions']:
-                        writer.writerow(trans)
+                    # Group transactions by product_name
+                    products = {}
+                    for tr in report_data['transactions']:
+                        # tuple: (transaction_id, buyer_name, program_course, product_name, size, quantity, amount, or_number, date)
+                        product_name = tr[3]
+                        products.setdefault(product_name, []).append(tr)
+
+                    # Helper to get batch for a product (try inventory table 'batch' column, else parse parentheses)
+                    def _get_batch_for_product(prod_name):
+                        batch_val = ''
+                        try:
+                            conn = self.db.get_connection()
+                            cur = conn.cursor()
+                            cur.execute("PRAGMA table_info(inventory)")
+                            cols = [c[1] for c in cur.fetchall()]
+                            if 'batch' in cols:
+                                cur.execute("SELECT batch FROM inventory WHERE product_name = ? LIMIT 1", (prod_name,))
+                                r = cur.fetchone()
+                                if r and r[0] is not None:
+                                    batch_val = str(r[0])
+                            conn.close()
+                        except Exception:
+                            batch_val = ''
+
+                        if not batch_val:
+                            # Try to parse something like '(13th Batch)' from product name
+                            import re
+                            m = re.search(r"\(([^)]+Batch[^)]*)\)", prod_name, flags=re.IGNORECASE)
+                            if m:
+                                batch_val = m.group(1)
+                        return batch_val
+
+                    # Prefer a common size ordering if present
+                    preferred = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
+                    def _size_key(x):
+                        return (preferred.index(x) if x in preferred else len(preferred), x)
+
+                    # For each product, write its own header and table
+                    for product_name, trs in products.items():
+                        batch = _get_batch_for_product(product_name)
+                        header_title = product_name
+                        if batch:
+                            header_title = f"{product_name} ({batch})"
+
+                        writer.writerow([header_title])
+
+                        # Collect sizes for this product
+                        sizes_found = []
+                        for tr in trs:
+                            s = tr[4]
+                            if s and s not in sizes_found:
+                                sizes_found.append(s)
+
+                        sizes_sorted = sorted(sizes_found, key=_size_key)
+
+                        # Write column header for this product block
+                        header = ["NAME", "COURSE", "OR #"] + sizes_sorted + ["DATE", "AMOUNT"]
+                        writer.writerow(header)
+
+                        for tr in trs:
+                            buyer = tr[1]
+                            course = (tr[2] if len(tr) > 2 else '') or ''
+                            size = tr[4]
+                            qty = tr[5]
+                            amount = tr[6]
+                            or_num = tr[7]
+                            date = tr[8]
+
+                            row = [buyer, course, or_num] + [''] * len(sizes_sorted) + [date, f"{amount:.2f}"]
+                            if size in sizes_sorted:
+                                idx = sizes_sorted.index(size)
+                                row[3 + idx] = str(qty)
+
+                            writer.writerow(row)
+                        # blank line between product sections
+                        writer.writerow([])
             
             messagebox.showinfo("Success", f"Report exported successfully to:\n{filepath}")
             
