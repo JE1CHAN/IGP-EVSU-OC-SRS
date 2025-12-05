@@ -296,7 +296,8 @@ class TransactionModule:
             product_data = self.db.get_product_by_name_size(product, size)
             
             if product_data:
-                item_id, prod_name, prod_size, stock, price = product_data
+                # product_data: (item_id, product_name, size, batch, stock, price)
+                item_id, prod_name, prod_size, batch, stock, price = product_data
                 
                 # Update stock label
                 stock_color = "#27ae60" if stock > 10 else "#e74c3c"

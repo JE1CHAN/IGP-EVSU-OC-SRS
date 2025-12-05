@@ -401,7 +401,8 @@ class HistoryModule:
                 prod_data = self.db.get_product_by_name_size(p, s)
                 if prod_data:
                     # prod_data: (item_id, product_name, size, stock, price)
-                    price = prod_data[4]
+                    # prod_data: (item_id, product_name, size, batch, stock, price)
+                    price = prod_data[5]
                     new_total = price * q
                     amount_entry.delete(0, tk.END)
                     amount_entry.insert(0, f"{new_total:.2f}")

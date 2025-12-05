@@ -48,6 +48,7 @@ class DatabaseManager:
                 item_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 product_name TEXT NOT NULL,
                 size TEXT NOT NULL,
+                batch TEXT DEFAULT '',
                 stock INTEGER NOT NULL DEFAULT 0,
                 price REAL NOT NULL,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -105,6 +106,15 @@ class DatabaseManager:
                 cursor.execute("ALTER TABLE transactions ADD COLUMN program_course TEXT")
                 conn.commit()
                 print("Migration successful.")
+            
+            # Check if batch exists in inventory
+            cursor.execute("PRAGMA table_info(inventory)")
+            inv_cols = [info[1] for info in cursor.fetchall()]
+            if 'batch' not in inv_cols:
+                print("Migrating database: Adding batch column to inventory...")
+                cursor.execute("ALTER TABLE inventory ADD COLUMN batch TEXT DEFAULT ''")
+                conn.commit()
+                print("Inventory migration successful.")
                 
             conn.close()
         except Exception as e:
@@ -112,16 +122,16 @@ class DatabaseManager:
     
     # ========== INVENTORY OPERATIONS ==========
     
-    def add_product(self, product_name, size, stock, price):
+    def add_product(self, product_name, size, stock, price, batch=''):
         """Add a new product to inventory"""
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
             
             cursor.execute('''
-                INSERT INTO inventory (product_name, size, stock, price)
-                VALUES (?, ?, ?, ?)
-            ''', (product_name, size, stock, price))
+                INSERT INTO inventory (product_name, size, batch, stock, price)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (product_name, size, batch, stock, price))
             
             conn.commit()
             conn.close()
@@ -130,7 +140,7 @@ class DatabaseManager:
             print(f"Error adding product: {e}")
             return False
     
-    def update_product(self, item_id, product_name, size, stock, price):
+    def update_product(self, item_id, product_name, size, stock, price, batch=''):
         """Update an existing product in inventory"""
         try:
             conn = self.get_connection()
@@ -138,10 +148,10 @@ class DatabaseManager:
             
             cursor.execute('''
                 UPDATE inventory 
-                SET product_name = ?, size = ?, stock = ?, price = ?,
+                SET product_name = ?, size = ?, batch = ?, stock = ?, price = ?,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE item_id = ?
-            ''', (product_name, size, stock, price, item_id))
+            ''', (product_name, size, batch, stock, price, item_id))
             
             conn.commit()
             conn.close()
@@ -207,7 +217,7 @@ class DatabaseManager:
             conn = self.get_connection()
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT item_id, product_name, size, stock, price 
+                SELECT item_id, product_name, size, batch, stock, price 
                 FROM inventory 
                 ORDER BY product_name, size
             ''')
@@ -224,7 +234,7 @@ class DatabaseManager:
             conn = self.get_connection()
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT item_id, product_name, size, stock, price 
+                SELECT item_id, product_name, size, batch, stock, price 
                 FROM inventory 
                 WHERE product_name = ? AND size = ?
             ''', (product_name, size))
@@ -450,7 +460,7 @@ class DatabaseManager:
             totals = cursor.fetchone()
             
             cursor.execute('''
-                SELECT transaction_id, buyer_name, product_name, size, quantity, amount, or_number, date
+                SELECT transaction_id, buyer_name, program_course, product_name, size, quantity, amount, or_number, date
                 FROM transactions
                 WHERE date >= ? AND date < ?
                 ORDER BY date, transaction_id
@@ -493,7 +503,7 @@ class DatabaseManager:
             totals = cursor.fetchone()
             
             cursor.execute('''
-                SELECT transaction_id, buyer_name, product_name, size, quantity, amount, or_number, date
+                SELECT transaction_id, buyer_name, program_course, product_name, size, quantity, amount, or_number, date
                 FROM transactions
                 WHERE date >= ? AND date <= ?
                 ORDER BY date, transaction_id
