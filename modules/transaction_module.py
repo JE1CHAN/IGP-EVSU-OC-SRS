@@ -15,6 +15,7 @@ class TransactionModule:
     def __init__(self, parent, db_manager):
         self.parent = parent
         self.db = db_manager
+        self.selected_item_id = None
         
         # Create main frame
         self.main_frame = tk.Frame(parent, bg="white")
@@ -278,6 +279,8 @@ class TransactionModule:
             sizes = self.db.get_sizes_for_product(product)
             self.size_combo['values'] = sizes
             self.size_combo.set('')
+            # clear selected item when product changes
+            self.selected_item_id = None
             self.stock_label.config(text="Available Stock: --")
             self.price_entry.config(state="normal")
             self.price_entry.delete(0, tk.END)
@@ -292,17 +295,19 @@ class TransactionModule:
         size = self.size_combo.get()
         
         if product and size:
-            # Get product details
-            product_data = self.db.get_product_by_name_size(product, size)
+            # Get first available batch with stock for this product/size
+            product_data = self.db.get_first_available_batch_for_size(product, size)
             
             if product_data:
                 # product_data: (item_id, product_name, size, batch, stock, price)
                 item_id, prod_name, prod_size, batch, stock, price = product_data
+                # remember selected item (batch) for transactions
+                self.selected_item_id = item_id
                 
                 # Update stock label
                 stock_color = "#27ae60" if stock > 10 else "#e74c3c"
                 self.stock_label.config(
-                    text=f"Available Stock: {stock}",
+                    text=f"Available Stock: {stock} (Batch: {batch})",
                     fg=stock_color
                 )
                 
@@ -435,7 +440,7 @@ class TransactionModule:
             
             # Save to database (Pass program_course)
             success = self.db.add_transaction(
-                buyer_name, product, size, quantity, amount, or_number, date, program_course
+                buyer_name, product, size, quantity, amount, or_number, date, program_course, item_id=self.selected_item_id
             )
             
             if success:
@@ -476,3 +481,5 @@ class TransactionModule:
         self.date_entry.insert(0, datetime.now().strftime("%Y-%m-%d"))
         self.stock_label.config(text="Available Stock: --")
         self.buyer_name_entry.focus()
+        # clear selected item_id
+        self.selected_item_id = None

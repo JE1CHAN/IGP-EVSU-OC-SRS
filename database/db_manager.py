@@ -160,37 +160,70 @@ class DatabaseManager:
             print(f"Error updating product: {e}")
             return False
     
-    def update_stock(self, product_name, size, quantity_change):
-        """Update stock quantity for a product"""
+    def update_stock(self, product_name=None, size=None, quantity_change=0, item_id=None):
+        """Update stock quantity for a product or specific item (batch).
+
+        If `item_id` is provided, update that specific inventory row.
+        Otherwise, operate on the first matching inventory row for the given product_name and size.
+        This ensures we only modify a single batch row and avoid affecting other batches.
+        """
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
-            
-            # Check current stock
+
+            # If item_id is provided, target that row
+            if item_id is not None:
+                cursor.execute('SELECT stock FROM inventory WHERE item_id = ?', (item_id,))
+                row = cursor.fetchone()
+                if not row:
+                    print(f"Item not found: item_id={item_id}")
+                    conn.close()
+                    return False
+
+                new_stock = row[0] + quantity_change
+                if new_stock < 0:
+                    print(f"Error: Insufficient stock for item {item_id}. Current: {row[0]}, Requested: {abs(quantity_change)}")
+                    conn.close()
+                    return False
+
+                cursor.execute('''
+                    UPDATE inventory
+                    SET stock = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE item_id = ?
+                ''', (new_stock, item_id))
+
+                conn.commit()
+                conn.close()
+                return True
+
+            # No item_id: find the first matching row for product_name & size
             cursor.execute('''
-                SELECT stock FROM inventory 
+                SELECT item_id, stock FROM inventory
                 WHERE product_name = ? AND size = ?
+                ORDER BY batch ASC, item_id ASC
+                LIMIT 1
             ''', (product_name, size))
-            
+
             result = cursor.fetchone()
             if not result:
                 print(f"Product not found: {product_name} ({size})")
                 conn.close()
                 return False
-            
-            new_stock = result[0] + quantity_change
-            
+
+            target_item_id, current_stock = result
+            new_stock = current_stock + quantity_change
+
             if new_stock < 0:
-                print(f"Error: Insufficient stock. Current: {result[0]}, Requested: {abs(quantity_change)}")
+                print(f"Error: Insufficient stock. Current: {current_stock}, Requested: {abs(quantity_change)}")
                 conn.close()
                 return False
-            
+
             cursor.execute('''
-                UPDATE inventory 
+                UPDATE inventory
                 SET stock = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE product_name = ? AND size = ?
-            ''', (new_stock, product_name, size))
-            
+                WHERE item_id = ?
+            ''', (new_stock, target_item_id))
+
             conn.commit()
             conn.close()
             return True
@@ -251,12 +284,12 @@ class DatabaseManager:
             conn = self.get_connection()
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT stock FROM inventory 
+                SELECT SUM(stock) FROM inventory 
                 WHERE product_name = ? AND size = ?
             ''', (product_name, size))
             result = cursor.fetchone()
             conn.close()
-            return result[0] if result else 0
+            return result[0] if result and result[0] is not None else 0
         except Exception as e:
             print(f"Error checking stock: {e}")
             return 0
@@ -280,7 +313,7 @@ class DatabaseManager:
             conn = self.get_connection()
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT size FROM inventory 
+                SELECT DISTINCT size FROM inventory 
                 WHERE product_name = ? 
                 ORDER BY size
             ''', (product_name,))
@@ -291,16 +324,35 @@ class DatabaseManager:
             print(f"Error fetching sizes: {e}")
             return []
     
+    def get_first_available_batch_for_size(self, product_name, size):
+        """Get the first batch with available stock for a product/size combination"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT item_id, product_name, size, batch, stock, price
+                FROM inventory 
+                WHERE product_name = ? AND size = ? AND stock > 0
+                ORDER BY batch ASC
+                LIMIT 1
+            ''', (product_name, size))
+            result = cursor.fetchone()
+            conn.close()
+            return result
+        except Exception as e:
+            print(f"Error fetching first available batch: {e}")
+            return None
+    
     # ========== TRANSACTION OPERATIONS ==========
     
-    def add_transaction(self, buyer_name, product_name, size, quantity, amount, or_number, date=None, program_course=None):
+    def add_transaction(self, buyer_name, product_name, size, quantity, amount, or_number, date=None, program_course=None, item_id=None):
         """Add a new sales transaction"""
         try:
             if date is None:
                 date = datetime.now().strftime("%Y-%m-%d")
             
             # Check and update stock
-            if not self.update_stock(product_name, size, -quantity):
+            if not self.update_stock(product_name, size, -quantity, item_id=item_id):
                 return False
             
             conn = self.get_connection()
@@ -338,31 +390,38 @@ class DatabaseManager:
             old_prod, old_size, old_qty = old_data
             
             # 2. Handle Inventory Updates
-            # Revert old stock (Add back)
-            cursor.execute("SELECT stock FROM inventory WHERE product_name = ? AND size = ?", (old_prod, old_size))
+            # Revert old stock (Add back) on the specific batch (first matching batch for old transaction)
+            cursor.execute("SELECT item_id, stock FROM inventory WHERE product_name = ? AND size = ? ORDER BY batch ASC, item_id ASC LIMIT 1", (old_prod, old_size))
             old_stock_row = cursor.fetchone()
+            old_item_id = None
+            old_stock = 0
             if old_stock_row:
-                 cursor.execute("UPDATE inventory SET stock = ? WHERE product_name = ? AND size = ?", (old_stock_row[0] + old_qty, old_prod, old_size))
-            
-            # Deduct new stock
-            cursor.execute("SELECT stock FROM inventory WHERE product_name = ? AND size = ?", (product_name, size))
+                old_item_id, old_stock = old_stock_row
+                cursor.execute("UPDATE inventory SET stock = ? WHERE item_id = ?", (old_stock + old_qty, old_item_id))
+
+            # Deduct new stock on the specific batch (first matching batch for new selection)
+            cursor.execute("SELECT item_id, stock FROM inventory WHERE product_name = ? AND size = ? ORDER BY batch ASC, item_id ASC LIMIT 1", (product_name, size))
             new_stock_row = cursor.fetchone()
             if not new_stock_row:
-                 conn.rollback() # Undo revert
-                 conn.close()
-                 return False, f"Product {product_name} ({size}) not found in inventory"
-            
-            current_stock = new_stock_row[0]
-            # Note: We use the stock value *after* revert of old qty if it's the same product
-            if product_name == old_prod and size == old_size:
-                current_stock = old_stock_row[0] + old_qty
+                conn.rollback() # Undo revert
+                conn.close()
+                return False, f"Product {product_name} ({size}) not found in inventory"
+
+            new_item_id, new_stock = new_stock_row
+
+            # Determine current available stock for deduction
+            if product_name == old_prod and size == old_size and old_stock_row:
+                current_stock = old_stock + old_qty
+            else:
+                current_stock = new_stock
 
             if current_stock < quantity:
-                 conn.rollback() # Undo revert
-                 conn.close()
-                 return False, f"Insufficient stock for {product_name} ({size}). Available: {current_stock}"
-            
-            cursor.execute("UPDATE inventory SET stock = ? WHERE product_name = ? AND size = ?", (current_stock - quantity, product_name, size))
+                conn.rollback() # Undo revert
+                conn.close()
+                return False, f"Insufficient stock for {product_name} ({size}). Available: {current_stock}"
+
+            # Deduct from the selected/new batch item
+            cursor.execute("UPDATE inventory SET stock = ? WHERE item_id = ?", (current_stock - quantity, new_item_id))
             
             # 3. Update Transaction Record
             cursor.execute("""

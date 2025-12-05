@@ -447,12 +447,12 @@ class InventoryModule:
                     messagebox.showerror("Error", "Stock and price must be positive")
                     return
                 
-                # Check if product already exists
+                # Check if product already exists with same batch
                 existing = self.db.get_product_by_name_size(product, size)
-                if existing:
+                if existing and existing[3] == batch:
                     messagebox.showerror(
                         "Error",
-                        f"Product '{product}' with size '{size}' already exists"
+                        f"Product '{product}' with size '{size}' and batch '{batch}' already exists"
                     )
                     return
                 
