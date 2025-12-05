@@ -134,7 +134,7 @@ class InventoryModule:
         table_frame.pack(fill=tk.BOTH, expand=True)
         
         # Create Treeview
-        columns = ("ID", "Product Name", "Size", "Batch", "Stock", "Price")
+        columns = ("Product Name", "Size", "Batch", "Stock", "Price")
         self.tree = ttk.Treeview(
             table_frame,
             columns=columns,
@@ -143,7 +143,6 @@ class InventoryModule:
         )
         
         # Define column headings
-        self.tree.heading("ID", text="ID")
         self.tree.heading("Product Name", text="Product Name")
         self.tree.heading("Size", text="Size")
         self.tree.heading("Batch", text="Batch")
@@ -151,8 +150,7 @@ class InventoryModule:
         self.tree.heading("Price", text="Price (₱)")
         
         # Define column widths
-        self.tree.column("ID", width=50, anchor="center")
-        self.tree.column("Product Name", width=300, anchor="w")
+        self.tree.column("Product Name", width=350, anchor="w")
         self.tree.column("Size", width=100, anchor="center")
         self.tree.column("Batch", width=120, anchor="center")
         self.tree.column("Stock", width=120, anchor="center")
@@ -225,11 +223,11 @@ class InventoryModule:
             elif stock < 10:
                 tag = "low_stock"
             
-            # Insert into tree
+            # Insert into tree - skip item_id from display
             self.tree.insert(
                 "",
                 tk.END,
-                values=(item_id, product_name, size, batch, stock, price_str),
+                values=(product_name, size, batch, stock, price_str),
                 tags=(tag,) if tag else ()
             )
     
