@@ -170,7 +170,7 @@ class HistoryModule:
         table_frame.pack(fill=tk.BOTH, expand=True)
         
         # Create Treeview
-        columns = ("ID", "Buyer", "Product", "Size", "Qty", "Amount", "OR#", "Date")
+        columns = ("Buyer", "Product", "Batch", "Size", "Qty", "Amount", "OR#", "Date")
         self.tree = ttk.Treeview(
             table_frame,
             columns=columns,
@@ -179,9 +179,9 @@ class HistoryModule:
         )
         
         # Define column headings
-        self.tree.heading("ID", text="ID")
         self.tree.heading("Buyer", text="Buyer Name")
         self.tree.heading("Product", text="Product")
+        self.tree.heading("Batch", text="Batch")
         self.tree.heading("Size", text="Size")
         self.tree.heading("Qty", text="Qty")
         self.tree.heading("Amount", text="Amount (₱)")
@@ -189,14 +189,14 @@ class HistoryModule:
         self.tree.heading("Date", text="Date")
         
         # Define column widths
-        self.tree.column("ID", width=50, anchor="center")
-        self.tree.column("Buyer", width=180, anchor="w")
-        self.tree.column("Product", width=180, anchor="w")
+        self.tree.column("Buyer", width=150, anchor="w")
+        self.tree.column("Product", width=150, anchor="w")
+        self.tree.column("Batch", width=100, anchor="center")
         self.tree.column("Size", width=70, anchor="center")
         self.tree.column("Qty", width=60, anchor="center")
-        self.tree.column("Amount", width=120, anchor="e")
-        self.tree.column("OR#", width=120, anchor="center")
-        self.tree.column("Date", width=100, anchor="center")
+        self.tree.column("Amount", width=100, anchor="e")
+        self.tree.column("OR#", width=100, anchor="center")
+        self.tree.column("Date", width=90, anchor="center")
         
         # Scrollbars
         vsb = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
@@ -219,17 +219,22 @@ class HistoryModule:
         total_revenue = 0
         
         for trans in transactions:
+            # transaction tuple: (trans_id, buyer, program_course, product, size, batch, qty, amount, or_num, date)
             trans_id, buyer, product, size, qty, amount, or_num, date = trans
             
             # Format amount
             amount_str = f"₱{amount:,.2f}"
             total_revenue += amount
             
-            # Insert into tree
+            # Get batch for this product/size (if available)
+            prod_data = self.db.get_product_by_name_size(product, size)
+            batch = prod_data[3] if prod_data and len(prod_data) > 3 else ''
+            
+            # Insert into tree - skip trans_id
             self.tree.insert(
                 "",
                 tk.END,
-                values=(trans_id, buyer, product, size, qty, amount_str, or_num, date)
+                values=(buyer, product, batch, size, qty, amount_str, or_num, date)
             )
         
         # Update stats

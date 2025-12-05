@@ -400,7 +400,7 @@ class ReportsModule:
             transactions_frame.pack(fill=tk.BOTH, expand=True)
             
             # Create table for transactions
-            columns = ("ID", "Date", "Buyer", "Product", "Size", "Qty", "Amount", "OR#")
+            columns = ("Date", "Buyer", "Product", "Batch", "Size", "Qty", "Amount", "OR#")
             trans_tree = ttk.Treeview(
                 transactions_frame,
                 columns=columns,
@@ -408,19 +408,19 @@ class ReportsModule:
                 height=15
             )
             
-            trans_tree.heading("ID", text="ID")
             trans_tree.heading("Date", text="Date")
             trans_tree.heading("Buyer", text="Buyer Name")
             trans_tree.heading("Product", text="Product")
+            trans_tree.heading("Batch", text="Batch")
             trans_tree.heading("Size", text="Size")
             trans_tree.heading("Qty", text="Qty")
             trans_tree.heading("Amount", text="Amount")
             trans_tree.heading("OR#", text="OR Number")
             
-            trans_tree.column("ID", width=50, anchor="center")
             trans_tree.column("Date", width=90, anchor="center")
-            trans_tree.column("Buyer", width=150, anchor="w")
-            trans_tree.column("Product", width=150, anchor="w")
+            trans_tree.column("Buyer", width=130, anchor="w")
+            trans_tree.column("Product", width=130, anchor="w")
+            trans_tree.column("Batch", width=100, anchor="center")
             trans_tree.column("Size", width=70, anchor="center")
             trans_tree.column("Qty", width=50, anchor="center")
             trans_tree.column("Amount", width=100, anchor="e")
@@ -429,10 +429,13 @@ class ReportsModule:
             for trans in report_data['transactions']:
                 # transaction tuple now: (id, buyer_name, program_course, product_name, size, quantity, amount, or_number, date)
                 trans_id, buyer, course, product, size, qty, amount, or_num, date = trans
+                # Get batch for this product/size
+                prod_data = self.db.get_product_by_name_size(product, size)
+                batch = prod_data[3] if prod_data and len(prod_data) > 3 else ''
                 trans_tree.insert(
                     "",
                     tk.END,
-                    values=(trans_id, date, buyer, product, size, qty, f"₱{amount:,.2f}", or_num)
+                    values=(date, buyer, product, batch, size, qty, f"₱{amount:,.2f}", or_num)
                 )
             
             # Add scrollbar to transactions tree
