@@ -223,10 +223,11 @@ class InventoryModule:
             elif stock < 10:
                 tag = "low_stock"
             
-            # Insert into tree - skip item_id from display
+            # Insert into tree - skip item_id from display, use item_id as iid
             self.tree.insert(
                 "",
                 tk.END,
+                iid=item_id,
                 values=(product_name, size, batch, stock, price_str),
                 tags=(tag,) if tag else ()
             )
@@ -235,7 +236,9 @@ class InventoryModule:
         """Handle tree selection"""
         selection = self.tree.selection()
         if selection:
-            self.selected_item = self.tree.item(selection[0])['values']
+            item_id = int(selection[0])  # iid is item_id
+            values = self.tree.item(selection[0])['values']
+            self.selected_item = (item_id,) + values  # (item_id, product_name, size, batch, stock, price_str)
     
     def show_add_stock_dialog(self):
         """Show dialog to quickly add stock to existing product"""
@@ -495,11 +498,14 @@ class InventoryModule:
     
     def show_update_dialog(self):
         """Show dialog to update selected product"""
-        if not self.selected_item:
+        selection = self.tree.selection()
+        if not selection:
             messagebox.showwarning("Warning", "Please select a product to update")
             return
         
-        item_id, product_name, size, batch_val, stock, price_str = self.selected_item
+        item_id = int(selection[0])
+        values = self.tree.item(selection[0])['values']
+        product_name, size, batch_val, stock, price_str = values
         price = float(price_str.replace('₱', '').replace(',', ''))
         
         dialog = tk.Toplevel(self.parent)
@@ -645,13 +651,15 @@ class InventoryModule:
     
     def delete_product(self):
         """Delete selected product"""
-        if not self.selected_item:
+        selection = self.tree.selection()
+        if not selection:
             messagebox.showwarning("Warning", "Please select a product to delete")
             return
         
-        item_id = self.selected_item[0]
-        product_name = self.selected_item[1]
-        size = self.selected_item[2]
+        item_id = int(selection[0])  # iid is item_id
+        values = self.tree.item(selection[0])['values']
+        product_name = values[0]
+        size = values[1]
         
         # Confirm deletion
         confirm = messagebox.askyesno(
