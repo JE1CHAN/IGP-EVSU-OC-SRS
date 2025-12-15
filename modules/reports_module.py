@@ -558,7 +558,7 @@ class ReportsModule:
                         batch = _get_batch_for_product(product_name)
                         header_title = product_name
                         if batch:
-                            header_title = f"{product_name} ({batch})"
+                            header_title = f"{product_name} (Batch {batch})"
 
                         writer.writerow([header_title])
 
