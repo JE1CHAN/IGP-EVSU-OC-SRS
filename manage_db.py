@@ -24,7 +24,6 @@ class DatabaseTool:
         return sqlite3.connect(self.db_path)
 
     def create_ui(self):
-        # --- TOP TOOLBAR ---
         toolbar = tk.Frame(self.root, bg="#f0f0f0", padx=10, pady=10)
         toolbar.pack(fill=tk.X)
         
@@ -38,11 +37,10 @@ class DatabaseTool:
         tk.Button(toolbar, text="🗑️ Delete Selected Row", command=self.delete_selected_row, bg="#e74c3c", fg="white").pack(side=tk.LEFT, padx=5)
         tk.Button(toolbar, text="⚠️ Clear Entire Table", command=self.clear_table, bg="#c0392b", fg="white").pack(side=tk.LEFT, padx=5)
 
-        # --- DATA VIEW (TREEVIEW) ---
+
         tree_frame = tk.Frame(self.root)
         tree_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
         
-        # Scrollbars
         y_scroll = ttk.Scrollbar(tree_frame, orient="vertical")
         x_scroll = ttk.Scrollbar(tree_frame, orient="horizontal")
         
@@ -55,7 +53,6 @@ class DatabaseTool:
         x_scroll.pack(side=tk.BOTTOM, fill=tk.X)
         self.tree.pack(fill=tk.BOTH, expand=True)
 
-        # --- SQL QUERY SECTION ---
         sql_frame = tk.LabelFrame(self.root, text="Execute SQL Query (Advanced)", padx=10, pady=10)
         sql_frame.pack(fill=tk.X, padx=10, pady=10)
         
@@ -179,7 +176,7 @@ class DatabaseTool:
             cursor.execute(query)
             conn.commit()
             messagebox.showinfo("Success", "Query executed successfully!")
-            self.load_data() # Refresh view
+            self.load_data()
         except Exception as e:
             messagebox.showerror("SQL Error", str(e))
         finally:

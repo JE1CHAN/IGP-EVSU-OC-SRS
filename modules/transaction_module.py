@@ -323,6 +323,24 @@ class TransactionModule:
                 
                 # Calculate amount if quantity is already entered
                 self.calculate_amount()
+            else:
+                # No batch with available stock was found.
+                # If overall available stock for this product/size is zero, show clear red message.
+                available_stock = self.db.get_available_stock(product, size)
+                if available_stock == 0:
+                    self.selected_item_id = None
+                    self.stock_label.config(text="No available stock left", fg="#e74c3c")
+                    # Clear price and amount since nothing can be sold
+                    self.price_entry.config(state="normal")
+                    self.price_entry.delete(0, tk.END)
+                    self.price_entry.config(state="readonly")
+                    self.amount_entry.config(state="normal")
+                    self.amount_entry.delete(0, tk.END)
+                    self.amount_entry.config(state="readonly")
+                else:
+                    # There is stock somewhere but no single batch found (unexpected); show available amount
+                    self.selected_item_id = None
+                    self.stock_label.config(text=f"Available Stock: {available_stock} (No batch available)", fg="#e74c3c")
     
     def calculate_amount(self, event=None):
         """Calculate total amount based on quantity and price"""

@@ -11,7 +11,6 @@ from tkinter import ttk, messagebox
 import sys
 import os
 
-# Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from database.db_manager import DatabaseManager
@@ -27,20 +26,16 @@ class LoginWindow(tk.Toplevel):
         super().__init__(parent)
         self.parent = parent
         
-        # Configure window
         self.title("Login - EVSU-OC IGP SRS")
-        # INCREASED HEIGHT FROM 450 TO 600 TO FIT CONTENT
         self.geometry("500x600")
         self.resizable(False, False)
         self.configure(bg="white")
         
-        # Handle "X" button click
+
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         
-        # Center the window
         self.center_window()
         
-        # Create UI elements
         self.create_ui()
         
     def center_window(self):
@@ -63,20 +58,16 @@ class LoginWindow(tk.Toplevel):
         header_frame.pack(fill=tk.X, pady=(0, 20))
         
         try:
-            # Construct path to logo
             logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "image", "logo.png")
             
-            # Load image
             self.logo_img = tk.PhotoImage(file=logo_path)
-            # Resize: INCREASED SUBSAMPLE TO MAKE LOGO SMALLER (5x smaller)
             self.logo_img = self.logo_img.subsample(5, 5) 
             
-            # Logo + Title Label
             title_label = tk.Label(
                 header_frame,
                 text="  EVSU-OC IGP\n  SALES RECORD SYSTEM",
                 image=self.logo_img,
-                compound=tk.LEFT,  # Places image to the left of text
+                compound=tk.LEFT,
                 font=("Arial", 14, "bold"),
                 bg="white",
                 fg="#800000",
@@ -86,7 +77,6 @@ class LoginWindow(tk.Toplevel):
             
         except Exception as e:
             print(f"Logo error: {e}")
-            # Fallback text if logo fails
             tk.Label(
                 header_frame,
                 text="EVSU-OC IGP\nSALES RECORD SYSTEM",
@@ -95,11 +85,11 @@ class LoginWindow(tk.Toplevel):
                 fg="#800000"
             ).pack()
 
-        # --- LOGIN FORM ---
+        # LOG-IN
         login_frame = tk.LabelFrame(main_frame, text="Admin Login", font=("Arial", 10), bg="white", padx=20, pady=20)
         login_frame.pack(fill=tk.X)
         
-        # Username
+        # USERNAME
         tk.Label(
             login_frame,
             text="Username:",
@@ -117,7 +107,7 @@ class LoginWindow(tk.Toplevel):
         self.username_entry.pack(fill=tk.X, pady=(5, 15))
         self.username_entry.focus()
         
-        # Password
+        # PASSWORD
         tk.Label(
             login_frame,
             text="Password:",
@@ -135,10 +125,9 @@ class LoginWindow(tk.Toplevel):
         )
         self.password_entry.pack(fill=tk.X, pady=(5, 20))
         
-        # Bind Enter key
+        # Bind Enter
         self.bind('<Return>', lambda event: self.validate_login())
         
-        # Login Button
         tk.Button(
             login_frame,
             text="LOGIN",
@@ -152,7 +141,7 @@ class LoginWindow(tk.Toplevel):
             command=self.validate_login
         ).pack(fill=tk.X)
         
-        # Footer
+        # FOOTER
         tk.Label(
             main_frame,
             text="Authorized Access Only",
@@ -167,8 +156,8 @@ class LoginWindow(tk.Toplevel):
         password = self.password_entry.get().strip()
         
         if username == "admin" and password == "admin123":
-            self.parent.deiconify() # Show main app
-            self.destroy()          # Close login
+            self.parent.deiconify()
+            self.destroy()
         else:
             messagebox.showerror(
                 "Access Denied", 
@@ -187,30 +176,22 @@ class MainApplication(tk.Tk):
     
     def __init__(self):
         super().__init__()
-        
-        # Hide main window initially (wait for login)
+    
         self.withdraw()
-        
-        # Initialize database
         self.db_manager = DatabaseManager()
         
-        # Configure main window
         self.title("EVSU-OC IGP Sales Record System")
         self.geometry("1200x800")
         self.configure(bg="#f0f0f0")
         
-        # Center window on screen
         self.center_window()
         
-        # Create main UI
         self.create_header()
         self.create_navigation()
         self.create_content_area()
         
-        # Show default module
         self.show_transaction_module()
         
-        # Launch Login Window
         LoginWindow(self)
     
     def center_window(self):
@@ -228,24 +209,18 @@ class MainApplication(tk.Tk):
         header_frame.pack(fill=tk.X, side=tk.TOP)
         header_frame.pack_propagate(False)
         
-        # Container for centering content (optional, or just pack left/center)
-        # Here we pack it into the header frame directly
         
         try:
-            # Construct path to logo
             logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "image", "logo.png")
             
-            # Load image (Use a separate instance for main window to avoid reference issues)
             self.header_logo = tk.PhotoImage(file=logo_path)
-            # Resize (UPDATED: Subsample 8x to make it smaller as requested)
             self.header_logo = self.header_logo.subsample(8, 8)
             
-            # Title with Logo
             title_label = tk.Label(
                 header_frame,
                 text="  EVSU-OC IGP SALES RECORD SYSTEM",
                 image=self.header_logo,
-                compound=tk.LEFT,   # IMAGE BESIDE TITLE
+                compound=tk.LEFT,
                 font=("Arial", 20, "bold"),
                 bg="#800000",
                 fg="white"
@@ -254,7 +229,6 @@ class MainApplication(tk.Tk):
             
         except Exception as e:
             print(f"Header logo error: {e}")
-            # Fallback title without image
             title_label = tk.Label(
                 header_frame,
                 text="EVSU-OC IGP SALES RECORD SYSTEM",
@@ -264,7 +238,6 @@ class MainApplication(tk.Tk):
             )
             title_label.pack(pady=10)
         
-        # Subtitle
         subtitle_label = tk.Label(
             header_frame,
             text="Eastern Visayas State University - Ormoc Campus",
@@ -280,7 +253,7 @@ class MainApplication(tk.Tk):
         nav_frame.pack(fill=tk.Y, side=tk.LEFT)
         nav_frame.pack_propagate(False)
         
-        # Navigation title
+        # Nav title
         nav_title = tk.Label(
             nav_frame,
             text="MENU",
@@ -291,7 +264,7 @@ class MainApplication(tk.Tk):
         )
         nav_title.pack(fill=tk.X)
         
-        # Navigation buttons
+        #   NAV BTNS
         self.nav_buttons = []
         
         buttons_config = [
@@ -307,10 +280,10 @@ class MainApplication(tk.Tk):
                 nav_frame,
                 text=text,
                 font=("Arial", 12),
-                bg="#600000",         # Normal bg: Dark Maroon
-                fg="white",           # Normal text: White
-                activebackground="#FFC107", # Active bg: Yellow (Accent)
-                activeforeground="black",   # Active text: Black
+                bg="#600000",
+                fg="white",
+                activebackground="#FFC107",
+                activeforeground="black",
                 bd=0,
                 padx=20,
                 pady=15,
@@ -335,10 +308,8 @@ class MainApplication(tk.Tk):
         """Highlight the active navigation button"""
         for i, btn in enumerate(self.nav_buttons):
             if i == active_index:
-                # Active State: Yellow background, Black text
                 btn.configure(bg="#FFC107", fg="black")
             else:
-                # Inactive State: Dark Maroon background, White text
                 btn.configure(bg="#600000", fg="white")
     
     def show_transaction_module(self):

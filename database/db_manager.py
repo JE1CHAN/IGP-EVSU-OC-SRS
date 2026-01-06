@@ -343,7 +343,6 @@ class DatabaseManager:
             print(f"Error fetching first available batch: {e}")
             return None
     
-    # ========== TRANSACTION OPERATIONS ==========
     
     def add_transaction(self, buyer_name, product_name, size, quantity, amount, or_number, date=None, program_course=None, item_id=None):
         """Add a new sales transaction"""
@@ -390,7 +389,6 @@ class DatabaseManager:
             old_prod, old_size, old_qty = old_data
             
             # 2. Handle Inventory Updates
-            # Revert old stock (Add back) on the specific batch (first matching batch for old transaction)
             cursor.execute("SELECT item_id, stock FROM inventory WHERE product_name = ? AND size = ? ORDER BY batch ASC, item_id ASC LIMIT 1", (old_prod, old_size))
             old_stock_row = cursor.fetchone()
             old_item_id = None
@@ -399,7 +397,6 @@ class DatabaseManager:
                 old_item_id, old_stock = old_stock_row
                 cursor.execute("UPDATE inventory SET stock = ? WHERE item_id = ?", (old_stock + old_qty, old_item_id))
 
-            # Deduct new stock on the specific batch (first matching batch for new selection)
             cursor.execute("SELECT item_id, stock FROM inventory WHERE product_name = ? AND size = ? ORDER BY batch ASC, item_id ASC LIMIT 1", (product_name, size))
             new_stock_row = cursor.fetchone()
             if not new_stock_row:
@@ -409,7 +406,6 @@ class DatabaseManager:
 
             new_item_id, new_stock = new_stock_row
 
-            # Determine current available stock for deduction
             if product_name == old_prod and size == old_size and old_stock_row:
                 current_stock = old_stock + old_qty
             else:
@@ -420,7 +416,7 @@ class DatabaseManager:
                 conn.close()
                 return False, f"Insufficient stock for {product_name} ({size}). Available: {current_stock}"
 
-            # Deduct from the selected/new batch item
+            # Deduct from the selected/new batch it
             cursor.execute("UPDATE inventory SET stock = ? WHERE item_id = ?", (current_stock - quantity, new_item_id))
             
             # 3. Update Transaction Record

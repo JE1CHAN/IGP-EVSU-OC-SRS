@@ -238,7 +238,7 @@ class InventoryModule:
         if selection:
             item_id = int(selection[0])  # iid is item_id
             values = self.tree.item(selection[0])['values']
-            self.selected_item = (item_id,) + values  # (item_id, product_name, size, batch, stock, price_str)
+            self.selected_item = (item_id,) + values
     
     def show_add_stock_dialog(self):
         """Show dialog to quickly add stock to existing product"""
@@ -288,18 +288,63 @@ class InventoryModule:
         
         product_combo.bind("<<ComboboxSelected>>", on_product_change)
         
-        # 3. Quantity Entry
-        tk.Label(form_frame, text="Quantity to Add:", font=("Arial", 11, "bold"), bg="white").grid(row=2, column=0, sticky="w", pady=10, padx=10)
-        
+        # 3. Batch Dropdown (choose which batch to add stock to)
+        tk.Label(form_frame, text="Batch:", font=("Arial", 11, "bold"), bg="white").grid(row=2, column=0, sticky="w", pady=10, padx=10)
+
+        batch_combo = ttk.Combobox(form_frame, font=("Arial", 11), width=23, state="readonly")
+        batch_combo.grid(row=2, column=1, pady=10, padx=10)
+
+        # Map displayed batch -> item_id
+        batch_map = {}
+
+        # Load batches when size is selected
+        def on_size_change(event):
+            selected_prod = product_combo.get()
+            selected_size = size_combo.get()
+            batch_map.clear()
+            batch_combo.set('')
+            batch_combo['values'] = []
+            if not selected_prod or not selected_size:
+                return
+
+            # Gather batches for this product+size from inventory
+            try:
+                inv = self.db.get_all_inventory()
+                batches = []
+                for row in inv:
+                    # row structure: (item_id, product_name, size, batch, stock, price)
+                    item_id, pname, sz, batch, stock, price = row
+                    if pname == selected_prod and sz == selected_size:
+                        display = batch if batch else f"(no batch) - {item_id}"
+                        if display not in batches:
+                            batches.append(display)
+                            batch_map[display] = item_id
+
+                if batches:
+                    batch_combo['values'] = batches
+                else:
+                    # No existing batches found
+                    batch_combo['values'] = ["-- No existing batches --"]
+                    batch_map["-- No existing batches --"] = None
+            except Exception:
+                batch_combo['values'] = ["-- Error loading batches --"]
+                batch_map["-- Error loading batches --"] = None
+
+        size_combo.bind("<<ComboboxSelected>>", on_size_change)
+
+        # 4. Quantity Entry
+        tk.Label(form_frame, text="Quantity to Add:", font=("Arial", 11, "bold"), bg="white").grid(row=3, column=0, sticky="w", pady=10, padx=10)
+
         qty_entry = tk.Entry(form_frame, font=("Arial", 11), width=25)
-        qty_entry.grid(row=2, column=1, pady=10, padx=10)
+        qty_entry.grid(row=3, column=1, pady=10, padx=10)
         
         # Logic to Save
         def save_stock():
             prod = product_combo.get()
             size = size_combo.get()
             qty_str = qty_entry.get().strip()
-            
+            selected_batch = batch_combo.get()
+
             if not prod or not size:
                 messagebox.showerror("Error", "Please select a product and size")
                 return
@@ -309,10 +354,15 @@ class InventoryModule:
                 if qty <= 0:
                     messagebox.showerror("Error", "Quantity must be positive")
                     return
-                    
-                # Update Database
-                if self.db.update_stock(prod, size, qty):
-                    messagebox.showinfo("Success", f"Added {qty} stock to {prod} ({size})")
+                # Determine target item_id from selected batch
+                target_item_id = batch_map.get(selected_batch)
+                if target_item_id is None:
+                    messagebox.showerror("Error", "Please select an existing batch to add stock to")
+                    return
+
+                # Update Database using specific item_id so only chosen batch is modified
+                if self.db.update_stock(item_id=target_item_id, quantity_change=qty):
+                    messagebox.showinfo("Success", f"Added {qty} stock to {prod} ({size}) [Batch: {selected_batch}]")
                     dialog.destroy()
                     self.load_inventory()
                 else:
@@ -384,27 +434,31 @@ class InventoryModule:
         product_entry = tk.Entry(form_frame, font=("Arial", 11), width=25)
         product_entry.grid(row=0, column=1, pady=10, padx=10)
         
-        # Size
+        # Size (dropdown)
         tk.Label(
             form_frame,
             text="Size:",
             font=("Arial", 11, "bold"),
             bg="white"
         ).grid(row=1, column=0, sticky="w", pady=10, padx=10)
-        
-        size_entry = tk.Entry(form_frame, font=("Arial", 11), width=25)
-        size_entry.grid(row=1, column=1, pady=10, padx=10)
-        
-        # Batch
+
+        size_combo = ttk.Combobox(form_frame, font=("Arial", 11), width=23, state="readonly")
+        size_combo['values'] = ["Small", "Medium", "Large", "X-Large", "N/A"]
+        size_combo.set("N/A")
+        size_combo.grid(row=1, column=1, pady=10, padx=10)
+
+        # Batch (spinbox initialized to 1)
         tk.Label(
             form_frame,
             text="Batch:",
             font=("Arial", 11, "bold"),
             bg="white"
         ).grid(row=2, column=0, sticky="w", pady=10, padx=10)
-        
-        batch_entry = tk.Entry(form_frame, font=("Arial", 11), width=25)
-        batch_entry.grid(row=2, column=1, pady=10, padx=10)
+
+        batch_spin = tk.Spinbox(form_frame, from_=1, to=9999, font=("Arial", 11), width=25)
+        batch_spin.delete(0, 'end')
+        batch_spin.insert(0, '1')
+        batch_spin.grid(row=2, column=1, pady=10, padx=10)
         
         # Initial Stock
         tk.Label(
@@ -435,8 +489,8 @@ class InventoryModule:
         def save_product():
             """Validate and save product"""
             product = product_entry.get().strip()
-            size = size_entry.get().strip()
-            batch = batch_entry.get().strip()
+            size = size_combo.get().strip()
+            batch = batch_spin.get().strip()
 
             try:
                 stock = int(stock_entry.get())

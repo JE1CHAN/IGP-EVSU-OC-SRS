@@ -17,7 +17,6 @@ class ReportsModule:
         self.parent = parent
         self.db = db_manager
         
-        # Create main frame
         self.main_frame = tk.Frame(parent, bg="white")
         self.main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
@@ -25,7 +24,6 @@ class ReportsModule:
     
     def create_ui(self):
         """Create reports interface"""
-        # Title
         title_label = tk.Label(
             self.main_frame,
             text="📈 SALES REPORTS",
@@ -35,7 +33,6 @@ class ReportsModule:
         )
         title_label.pack(pady=(0, 20))
         
-        # Report options frame
         options_frame = tk.LabelFrame(
             self.main_frame,
             text="Report Options",
@@ -89,7 +86,6 @@ class ReportsModule:
         self.year_entry.insert(0, str(datetime.now().year))
         self.year_entry.pack(side=tk.LEFT, padx=5)
         
-        # Generate Monthly Report button (Yellow)
         tk.Button(
             monthly_frame,
             text="📊 Generate Monthly Report",
@@ -270,7 +266,6 @@ class ReportsModule:
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
         
-        # Bind mouse wheel scroll to canvas
         def _on_mousewheel(event):
             canvas.yview_scroll(int(-1*(event.delta/120)), "units")
         
@@ -278,7 +273,6 @@ class ReportsModule:
         
         
         
-        # Report Header (Maroon)
         header_frame = tk.Frame(scrollable_frame, bg="#800000", padx=20, pady=20)
         header_frame.pack(fill=tk.X)
         
@@ -306,11 +300,9 @@ class ReportsModule:
             fg="white"
         ).pack()
         
-        # Content frame
         content_frame = tk.Frame(scrollable_frame, bg="white", padx=30, pady=20)
         content_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Summary section
         summary_frame = tk.LabelFrame(
             content_frame,
             text="SUMMARY",
@@ -346,46 +338,7 @@ class ReportsModule:
             anchor="w"
         ).pack(fill=tk.X, pady=3)
         
-        # Product Summary section
-        if report_data['product_summary']:
-            product_summary_frame = tk.LabelFrame(
-                content_frame,
-                text="PRODUCT SUMMARY",
-                font=("Arial", 12, "bold"),
-                bg="white",
-                padx=20,
-                pady=15
-            )
-            product_summary_frame.pack(fill=tk.X, pady=(0, 20))
-            
-            # Create table for product summary
-            columns = ("Product", "Size", "Quantity", "Revenue")
-            product_tree = ttk.Treeview(
-                product_summary_frame,
-                columns=columns,
-                show="headings",
-                height=8
-            )
-            
-            product_tree.heading("Product", text="Product")
-            product_tree.heading("Size", text="Size")
-            product_tree.heading("Quantity", text="Total Quantity")
-            product_tree.heading("Revenue", text="Total Revenue")
-            
-            product_tree.column("Product", width=250, anchor="w")
-            product_tree.column("Size", width=100, anchor="center")
-            product_tree.column("Quantity", width=120, anchor="center")
-            product_tree.column("Revenue", width=150, anchor="e")
-            
-            for item in report_data['product_summary']:
-                product, size, qty, revenue = item
-                product_tree.insert(
-                    "",
-                    tk.END,
-                    values=(product, size, qty, f"₱{revenue:,.2f}")
-                )
-            
-            product_tree.pack(fill=tk.X)
+        # Product summary removed: detailed transactions remain only
         
         # Detailed Transactions section
         if report_data['transactions']:
@@ -427,7 +380,6 @@ class ReportsModule:
             trans_tree.column("OR#", width=100, anchor="center")
             
             for trans in report_data['transactions']:
-                # transaction tuple now: (id, buyer_name, program_course, product_name, size, quantity, amount, or_number, date)
                 trans_id, buyer, course, product, size, qty, amount, or_num, date = trans
                 # Get batch for this product/size
                 prod_data = self.db.get_product_by_name_size(product, size)
@@ -438,7 +390,7 @@ class ReportsModule:
                     values=(date, buyer, product, batch, size, qty, f"₱{amount:,.2f}", or_num)
                 )
             
-            # Add scrollbar to transactions tree
+
             trans_scroll = ttk.Scrollbar(
                 transactions_frame,
                 orient="vertical",
@@ -461,9 +413,7 @@ class ReportsModule:
         button_frame = tk.Frame(scrollable_frame, bg="white", pady=20, padx=20)
         button_frame.pack(fill=tk.X)
         
-        # REMOVED PRINT BUTTON AS REQUESTED
         
-        # Export CSV button (Green)
         tk.Button(
             button_frame,
             text="💾 Export to Excel",
@@ -514,16 +464,13 @@ class ReportsModule:
             with open(filepath, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
                      
-                # Detailed Transactions Section - group by product and include batch
                 if report_data['transactions']:
                     # Group transactions by product_name
                     products = {}
                     for tr in report_data['transactions']:
-                        # tuple: (transaction_id, buyer_name, program_course, product_name, size, quantity, amount, or_number, date)
                         product_name = tr[3]
                         products.setdefault(product_name, []).append(tr)
 
-                    # Helper to get batch for a product (try inventory table 'batch' column, else parse parentheses)
                     def _get_batch_for_product(prod_name):
                         batch_val = ''
                         try:
