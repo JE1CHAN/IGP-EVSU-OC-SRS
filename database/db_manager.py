@@ -433,6 +433,35 @@ class DatabaseManager:
         except Exception as e:
             print(f"Error updating transaction: {e}")
             return False, str(e)
+
+    def delete_transaction(self, transaction_id):
+        """Delete a transaction and restore inventory stock"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+
+            cursor.execute("SELECT product_name, size, quantity FROM transactions WHERE transaction_id = ?", (transaction_id,))
+            row = cursor.fetchone()
+            if not row:
+                conn.close()
+                return False
+
+            product_name, size, quantity = row
+
+            # Restore stock (add back the quantity)
+            try:
+                self.update_stock(product_name=product_name, size=size, quantity_change=quantity)
+            except Exception:
+                # proceed to delete anyway but log
+                print(f"Warning: failed to restore stock for {product_name} ({size}) when deleting transaction {transaction_id}")
+
+            cursor.execute('DELETE FROM transactions WHERE transaction_id = ?', (transaction_id,))
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as e:
+            print(f"Error deleting transaction: {e}")
+            return False
     
     def get_all_transactions(self):
         """Get all transactions"""

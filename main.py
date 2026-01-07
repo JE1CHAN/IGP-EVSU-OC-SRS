@@ -181,7 +181,7 @@ class MainApplication(tk.Tk):
         self.db_manager = DatabaseManager()
         
         self.title("EVSU-OC IGP Sales Record System")
-        self.geometry("1200x800")
+        self.geometry("1450x800")
         self.configure(bg="#f0f0f0")
         
         self.center_window()

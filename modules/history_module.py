@@ -6,12 +6,7 @@ View and search all transaction history with filters
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
-from tkcalendar import DateEntry
 
-
-import tkinter as tk
-from tkinter import ttk, messagebox
-from datetime import datetime
 from tkcalendar import DateEntry
 
 
@@ -65,11 +60,11 @@ class HistoryModule:
         row2.pack(fill=tk.X, pady=10)
 
         tk.Label(row2, text="From Date:", font=("Arial", 10), bg="white").pack(side=tk.LEFT, padx=(0, 5))
-        self.start_date = tk.Entry(row2, font=("Arial", 10), width=12)
+        self.start_date = DateEntry(row2, font=("Arial", 10), width=12, date_pattern="yyyy-mm-dd")
         self.start_date.pack(side=tk.LEFT, padx=5)
 
         tk.Label(row2, text="To Date:", font=("Arial", 10), bg="white").pack(side=tk.LEFT, padx=(15, 5))
-        self.end_date = tk.Entry(row2, font=("Arial", 10), width=12)
+        self.end_date = DateEntry(row2, font=("Arial", 10), width=12, date_pattern="yyyy-mm-dd")
         self.end_date.pack(side=tk.LEFT, padx=5)
 
         search_btn = tk.Button(
@@ -111,6 +106,19 @@ class HistoryModule:
         )
         edit_btn.pack(side=tk.LEFT, padx=5)
 
+        delete_btn = tk.Button(
+            row2,
+            text="🗑️ Delete Transaction",
+            font=("Arial", 10, "bold"),
+            bg="#c0392b",
+            fg="white",
+            padx=20,
+            pady=5,
+            cursor="hand2",
+            command=self.delete_transaction
+        )
+        delete_btn.pack(side=tk.LEFT, padx=5)
+
         stats_frame = tk.Frame(self.main_frame, bg="#fdf2ce", relief=tk.RIDGE, bd=2)
         stats_frame.pack(fill=tk.X, pady=(0, 10))
 
@@ -127,9 +135,11 @@ class HistoryModule:
         table_frame = tk.Frame(self.main_frame, bg="white")
         table_frame.pack(fill=tk.BOTH, expand=True)
 
-        columns = ("Buyer", "Product", "Batch", "Size", "Qty", "Amount", "OR#", "Date")
+        # include ID as first column so actions can reference transaction id
+        columns = ("ID", "Buyer", "Product", "Batch", "Size", "Qty", "Amount", "OR#", "Date")
         self.tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=15)
 
+        self.tree.heading("ID", text="#")
         self.tree.heading("Buyer", text="Buyer Name")
         self.tree.heading("Product", text="Product")
         self.tree.heading("Batch", text="Batch")
@@ -139,6 +149,7 @@ class HistoryModule:
         self.tree.heading("OR#", text="OR Number")
         self.tree.heading("Date", text="Date")
 
+        self.tree.column("ID", width=50, anchor="center")
         self.tree.column("Buyer", width=150, anchor="w")
         self.tree.column("Product", width=150, anchor="w")
         self.tree.column("Batch", width=100, anchor="center")
@@ -172,7 +183,8 @@ class HistoryModule:
             prod_data = self.db.get_product_by_name_size(product, size)
             batch = prod_data[3] if prod_data and len(prod_data) > 3 else ''
 
-            self.tree.insert("", tk.END, values=(buyer, product, batch, size, qty, amount_str, or_num, date))
+            # include transaction id as first column
+            self.tree.insert("", tk.END, values=(trans_id, buyer, product, batch, size, qty, amount_str, or_num, date))
 
         self.stats_label.config(text=f"Total Transactions: {len(transactions)} | Total Revenue: ₱{total_revenue:,.2f}")
 
@@ -216,7 +228,10 @@ class HistoryModule:
             amount_str = f"₱{amount:,.2f}"
             total_revenue += amount
 
-            self.tree.insert("", tk.END, values=(trans_id, buyer, product, size, qty, amount_str, or_num, date))
+            prod_data = self.db.get_product_by_name_size(product, size)
+            batch = prod_data[3] if prod_data and len(prod_data) > 3 else ''
+
+            self.tree.insert("", tk.END, values=(trans_id, buyer, product, batch, size, qty, amount_str, or_num, date))
 
         self.stats_label.config(text=f"Total Transactions: {len(transactions)} | Total Revenue: ₱{total_revenue:,.2f}")
 
@@ -227,8 +242,15 @@ class HistoryModule:
         self.buyer_search.delete(0, tk.END)
         self.product_search.delete(0, tk.END)
         self.or_search.delete(0, tk.END)
-        self.start_date.delete(0, tk.END)
-        self.end_date.delete(0, tk.END)
+        try:
+            self.start_date.set_date(datetime.now())
+            self.end_date.set_date(datetime.now())
+        except:
+            try:
+                self.start_date.delete(0, tk.END)
+                self.end_date.delete(0, tk.END)
+            except:
+                pass
         self.load_all_transactions()
 
     def edit_transaction(self):
@@ -241,13 +263,20 @@ class HistoryModule:
         trans_id = item_values[0]
         curr_buyer = item_values[1]
         curr_prod = item_values[2]
-        curr_size = item_values[3]
-        curr_qty = item_values[4]
-        curr_amount_str = item_values[5]
-        curr_or = item_values[6]
-        curr_date = item_values[7]
+        curr_batch = item_values[3]
+        curr_size = item_values[4]
+        curr_qty = item_values[5]
+        curr_amount_str = item_values[6]
+        curr_or = item_values[7]
+        curr_date = item_values[8]
 
-        curr_amount = float(str(curr_amount_str).replace('₱', '').replace(',', ''))
+        try:
+            curr_amount = float(str(curr_amount_str).replace('₱', '').replace(',', ''))
+        except:
+            try:
+                curr_amount = float(curr_amount_str)
+            except:
+                curr_amount = 0.0
 
         edit_window = tk.Toplevel(self.parent)
         edit_window.title(f"Edit Transaction #{trans_id}")
@@ -321,7 +350,10 @@ class HistoryModule:
         tk.Label(form_frame, text="Date:", font=("Arial", 11), bg="white").pack(anchor="w")
         date_entry = DateEntry(form_frame, font=("Arial", 11), date_pattern="yyyy-mm-dd")
         date_entry.pack(fill=tk.X, pady=(0, 20))
-        date_entry.set_date(curr_date)
+        try:
+            date_entry.set_date(curr_date)
+        except:
+            pass
 
         def save_changes():
             new_buyer = buyer_entry.get().strip()
@@ -357,3 +389,27 @@ class HistoryModule:
         tk.Button(
             form_frame, text="💾 Save Changes", font=("Arial", 12, "bold"), bg="#27ae60", fg="white", pady=10, command=save_changes
         ).pack(fill=tk.X)
+
+    def delete_transaction(self):
+        selected_item = self.tree.selection()
+        if not selected_item:
+            messagebox.showwarning("Warning", "Please select a transaction to delete.")
+            return
+
+        item_values = self.tree.item(selected_item)['values']
+        trans_id = item_values[0]
+
+        if not messagebox.askyesno("Confirm Delete", f"Delete transaction #{trans_id}? This will restore inventory."):
+            return
+
+        success = False
+        try:
+            success = self.db.delete_transaction(trans_id)
+        except Exception as e:
+            success = False
+
+        if success:
+            messagebox.showinfo("Deleted", "Transaction deleted successfully.")
+            self.load_all_transactions()
+        else:
+            messagebox.showerror("Error", "Failed to delete transaction. See logs.")
